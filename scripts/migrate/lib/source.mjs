@@ -42,7 +42,9 @@ export class Source {
   }
 
   sshArgs() {
-    return [ '-o', 'BatchMode=yes', ...this.port ? [ '-p', this.port ] : [] ];
+    // MIGRATE_SSH_OPTS adds ssh options, e.g. "-i ~/.ssh/migrate -o StrictHostKeyChecking=accept-new".
+    const extra = (process.env.MIGRATE_SSH_OPTS ?? '').split(/\s+/u).filter(Boolean);
+    return [ '-o', 'BatchMode=yes', ...extra, ...this.port ? [ '-p', this.port ] : [] ];
   }
 
   /** Runs a read-only shell command with the source root as working directory. */

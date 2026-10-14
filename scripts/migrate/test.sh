@@ -108,6 +108,33 @@ start_css "$WORK/rewrite-subset" config/test.json $RPORT
 "${e2e[@]}" check "$RBASE" suffix "$STATE" alice,bob,dave carol
 stop_css
 
+if [ "${SKIP_SSH:-}" != 1 ]; then
+  section "(e) ssh:// source (read-only mount in an sshd container)"
+  mkdir -p "$WORK/sshd"
+  cp "$here/test/sshd/Dockerfile" "$WORK/sshd/"
+  ssh-keygen -q -t ed25519 -N '' -f "$WORK/sshd/key"
+  cp "$WORK/sshd/key.pub" "$WORK/sshd/authorized_keys"
+  docker build -q -t sc-migrate-sshd "$WORK/sshd" >/dev/null
+  docker run -d --name sc-migrate-sshd -p 2222:22 -v "$WORK/source:/srv/css:ro" sc-migrate-sshd >/dev/null
+  trap 'docker rm -f sc-migrate-sshd >/dev/null 2>&1 || true; cleanup' EXIT
+  export MIGRATE_SSH_OPTS="-i $WORK/sshd/key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR"
+  for _ in $(seq 1 30); do ssh -o BatchMode=yes $MIGRATE_SSH_OPTS -p 2222 reader@localhost true 2>/dev/null && break; sleep 1; done
+  remote=(--source ssh://reader@localhost:2222/srv/css --source-base-url "$BASE")
+  "${migrate[@]}" copy "${remote[@]}" --target "$WORK/ssh-subset" --accounts alice,carol@users.css.pod
+  "${migrate[@]}" verify "${remote[@]}" --target "$WORK/ssh-subset" --accounts alice,carol@users.css.pod --exact
+  "${migrate[@]}" copy "${remote[@]}" --target "$WORK/ssh-all" --all --dry-run --names-check
+  "${migrate[@]}" copy "${remote[@]}" --target "$WORK/ssh-all" --all
+  "${migrate[@]}" verify "${remote[@]}" --target "$WORK/ssh-all" --all
+  # The local source and the ssh source must give the same result as the local copies tested above.
+  # (Booting a server writes to the target, so compare against fresh local copies.)
+  "${migrate[@]}" copy "${common[@]}" --target "$WORK/local-subset" --accounts alice,carol@users.css.pod >/dev/null
+  "${migrate[@]}" copy "${common[@]}" --target "$WORK/local-all" --all >/dev/null
+  [ "$(tree_hash "$WORK/ssh-subset")" = "$(tree_hash "$WORK/local-subset")" ] || { echo "ssh subset differs from local subset"; exit 1; }
+  [ "$(tree_hash "$WORK/ssh-all")" = "$(tree_hash "$WORK/local-all")" ] || { echo "ssh all differs from local all"; exit 1; }
+  echo "ssh source gives the same files as the local source"
+  docker rm -f sc-migrate-sshd >/dev/null
+fi
+
 section "source unchanged"
 after="$(tree_hash "$WORK/source")"
 [ "$before" = "$after" ] || { echo "source tree changed"; exit 1; }

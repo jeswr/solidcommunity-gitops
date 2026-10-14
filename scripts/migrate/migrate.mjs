@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Copies Community Solid Server accounts and pods from one file-backend root to another.
-// See README.md in this directory. Never writes to the source; prints only counts, pod
+// See "Migrating data" in the repository README. Never writes to the source; prints only counts, pod
 // names and account IDs (never e-mail addresses, password hashes, secrets or file contents).
 import { spawnSync } from 'node:child_process';
 import {
