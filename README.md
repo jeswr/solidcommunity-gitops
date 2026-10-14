@@ -16,6 +16,7 @@ forked CSS release and no custom components.
 | `config/solidcommunity.net.json` | Production entry point, with one pod per subdomain. |
 | `config/test.json` | Test entry point, with pods under paths, because `*.azurewebsites.net` has no wildcard DNS. |
 | `config/email.template.json` | SendGrid settings. The key is injected at start-up from `SMTP_PASSWORD` and is never committed. |
+| `templates/root/wac/.acl` | Public, read-only server root (the Mashlib landing page). |
 | `templates/pod/wac` | SolidOS pod template, copied from SolidOS/css-mashlib@5cb4457 (identical to pivot's). |
 | `templates/identity/password/login.html.ejs` | Upstream login page. Accepts a bare username so that NSS-migrated accounts (`<user>@users.css.pod`) can still log in. |
 | `infra/main.bicep` | App Service (Linux, sitecontainers) with an Azure Files share over a private endpoint. Based on theodi/css-azure-deployment. |

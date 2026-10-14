@@ -1,0 +1,10 @@
+@prefix acl: <http://www.w3.org/ns/auth/acl#>.
+@prefix foaf: <http://xmlns.com/foaf/0.1/>.
+
+# The server root (the Mashlib landing page) is public and read-only.
+# It deliberately has no acl:default, so nothing beneath it inherits this.
+<#public>
+    a               acl:Authorization;
+    acl:agentClass  foaf:Agent;
+    acl:mode        acl:Read;
+    acl:accessTo    <./>.

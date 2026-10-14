@@ -3,9 +3,9 @@ name: Build image
 on:
   push:
     branches: [main]
-    paths: [Dockerfile, package.json, package-lock.json, config/**, templates/**, docker/**]
+    paths: [Dockerfile, package.json, package-lock.json, config/**, templates/**, docker/**, .github/workflows/image.yml]
   pull_request:
-    paths: [Dockerfile, package.json, package-lock.json, config/**, templates/**, docker/**]
+    paths: [Dockerfile, package.json, package-lock.json, config/**, templates/**, docker/**, .github/workflows/image.yml]
   workflow_dispatch:
 
 permissions:
