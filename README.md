@@ -51,8 +51,8 @@ Once a CSS release includes them, the builder stage can become a normal npm depe
 
 One-off setup, done once per subscription:
 
-1. Create a resource group, e.g. `az group create -n solidcommunity-test -l westeurope`.
-2. Create an Entra app with a federated credential for this repo's `test` environment, and give it Contributor on that resource group.
+1. Create a resource group, e.g. `az group create -n solidcommunity-test -l switzerlandnorth` (the Azure for Students subscription only allows switzerlandnorth, norwayeast, belgiumcentral, polandcentral and denmarkeast).
+2. Create a user-assigned managed identity with a federated credential for `repo:jeswr/solidcommunity-gitops:environment:test`, and give it Contributor on that resource group. This avoids needing an Entra app registration in the university tenant.
 3. In the repo's `test` environment, set the secrets `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID` and `SMTP_PASSWORD` (optional), and the variable `AZURE_RESOURCE_GROUP`.
 
 After that, a merge to `main` that touches `environments/test.bicepparam` or `infra/` deploys.
