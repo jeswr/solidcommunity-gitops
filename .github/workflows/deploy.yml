@@ -21,6 +21,8 @@ permissions:
 
 jobs:
   deploy:
+    # Skipped until the Azure environment is set up (see README).
+    if: vars.AZURE_RESOURCE_GROUP != ''
     runs-on: ubuntu-latest
     environment: ${{ inputs.env || 'test' }}
     steps:
