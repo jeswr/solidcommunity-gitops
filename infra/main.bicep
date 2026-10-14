@@ -42,6 +42,16 @@ param registryUser string = ''
 @secure()
 param registryPassword string = ''
 
+@description('Email address that receives alerts. Empty sends no email.')
+param alertEmail string = ''
+
+@secure()
+@description('Fine-grained GitHub token (Issues: write on this repo) used to open incident issues. Empty disables them.')
+param incidentGithubToken string = ''
+
+@description('Probe the public URL from outside Azure. Billed per run; see infra/monitoring.bicep.')
+param availabilityTestEnabled bool = false
+
 var suffix = uniqueString(resourceGroup().id, env)
 var siteName = 'sc-${env}-${suffix}'
 var storageName = take('sc${env}${suffix}', 24)
@@ -206,6 +216,24 @@ resource main 'Microsoft.Web/sites/sitecontainers@2024-11-01' = {
   }
 }
 
+module monitoring 'monitoring.bicep' = {
+  name: 'monitoring'
+  params: {
+    env: env
+    location: location
+    siteName: site.name
+    planName: plan.name
+    storageName: storage.name
+    shareQuotaGb: shareQuotaGb
+    baseUrl: resolvedBaseUrl
+    alertEmail: alertEmail
+    incidentGithubToken: incidentGithubToken
+    availabilityTestEnabled: availabilityTestEnabled
+  }
+  dependsOn: [ main ]
+}
+
 output siteName string = site.name
 output defaultHostName string = site.properties.defaultHostName
 output baseUrl string = resolvedBaseUrl
+output logWorkspaceId string = monitoring.outputs.workspaceCustomerId

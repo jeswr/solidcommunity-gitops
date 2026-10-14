@@ -23,6 +23,8 @@ forked CSS release and no custom components.
 | `environments/<env>.bicepparam` | Desired state of each environment: image, SKU, base URL. |
 | `.github/workflows/image.yml` | Builds the image, smoke-tests it and pushes it to GHCR. |
 | `.github/workflows/deploy.yml` | Deploys an environment when `infra/` or `environments/` change on `main`. |
+| `infra/monitoring.bicep` | Logs, alert rules and the action group that emails operators and opens incident issues. |
+| `.github/workflows/incident.yml` | Hands incidents and failed builds or deploys to Claude Code, which proposes fixes as draft PRs. |
 
 ## Why CSS comes from git, not npm
 
@@ -56,6 +58,54 @@ One-off setup, done once per subscription:
 3. In the repo's `test` environment, set the secrets `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID` and `SMTP_PASSWORD` (optional), and the variable `AZURE_RESOURCE_GROUP`.
 
 After that, a merge to `main` that touches `environments/test.bicepparam` or `infra/` deploys.
+
+## Monitoring and incidents
+
+Everything is Azure-native, sized to stay within free or near-free tiers:
+
+- **Logs.** Container stdout (CSS's log) and App Service platform events go to a Log
+  Analytics workspace with 30-day retention and a 0.15 GB/day cap, which keeps a month inside
+  the free ingestion allowance. Per-request HTTP logs are off by default (`collectHttpLogs`).
+- **Alerts.** Health check failing (the server is down), a burst of 5xx responses, slow
+  responses, plan CPU or memory above 90%, the pod share above 80% of its quota, a burst of
+  CSS error logs (expired locks and so on), and container crashes or restarts. The log
+  thresholds are first guesses to tune once there are real logs.
+- **Outside-in probe** (optional, `availabilityTestEnabled`). Fetches the public
+  `/.well-known/openid-configuration` from two European locations every 15 minutes and
+  checks the TLS certificate. It catches DNS, certificate and proxy failures the in-platform
+  health check can't see, but it is billed per run, so it is off in the test environment.
+
+When an alert fires, the action group emails `ALERT_EMAIL` and opens a GitHub issue labelled
+`incident`. The [incident workflow](.github/workflows/incident.yml) then runs Claude Code
+with read-only Azure access: it finds the cause in the logs and metrics, and when the fix
+belongs in this repo it opens a **draft** PR. When the cause is in CSS or Mashlib it writes the
+bug up on the issue instead. A failed image build or deploy on `main` gets the same
+treatment, and `@claude` in any issue or PR comment asks for a follow-up. Nothing is ever
+deployed automatically: a person reviews and merges, and the merge deploys as usual.
+
+Repeats of an alert that already has an open incident issue are folded into that issue.
+Close the issue once the incident is over.
+
+### Setup, once per repo
+
+1. Install the Claude GitHub app and add the token: run `/install-github-app` in Claude Code,
+   which installs the app on this repo and stores `CLAUDE_CODE_OAUTH_TOKEN` (a Claude
+   subscription) or `ANTHROPIC_API_KEY` (API billing) as a repo secret.
+2. Create the `incident` label.
+3. Create a fine-grained GitHub token with only **Issues: read and write** on this repo and
+   store it as the `INCIDENT_GITHUB_TOKEN` secret of each deploy environment. It is what
+   lets Azure open incident issues. Leave it unset to get email alerts only.
+4. Set the `ALERT_EMAIL` variable on each deploy environment.
+5. Create a second Entra app for the `incident` GitHub environment, with a federated
+   credential for that environment and only **Reader** and **Log Analytics Reader** on the
+   resource group. Store its `AZURE_CLIENT_ID`, `AZURE_TENANT_ID` and `AZURE_SUBSCRIPTION_ID`
+   as secrets of the `incident` environment and set `AZURE_RESOURCE_GROUP` there too. Claude
+   never gets the deploy identity.
+6. Protect `main` so that changes need a pull request.
+
+Issue text and log lines can contain text from anyone who sends the server a request, so
+Claude is told to treat them as data, is limited to an allow-list of read-only Azure
+commands plus git and `gh`, and can only open draft PRs.
 
 ## Local run
 
