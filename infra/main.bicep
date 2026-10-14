@@ -166,7 +166,7 @@ resource site 'Microsoft.Web/sites@2024-11-01' = {
         { name: 'CSS_BASE_URL', value: resolvedBaseUrl }
         { name: 'CSS_CONFIG', value: cssConfig }
         { name: 'CSS_ROOT_FILE_PATH', value: mountPath }
-        { name: 'CSS_EXTRA_ARGS', value: extraArgs }
+        { name: 'SC_EXTRA_ARGS', value: extraArgs }
         { name: 'NODE_OPTIONS', value: '--max-old-space-size=${maxOldSpaceMb}' }
         { name: 'SMTP_PASSWORD', value: smtpPassword }
       ]
@@ -199,7 +199,7 @@ resource main 'Microsoft.Web/sites/sitecontainers@2024-11-01' = {
       { name: 'CSS_BASE_URL', value: 'CSS_BASE_URL' }
       { name: 'CSS_CONFIG', value: 'CSS_CONFIG' }
       { name: 'CSS_ROOT_FILE_PATH', value: 'CSS_ROOT_FILE_PATH' }
-      { name: 'CSS_EXTRA_ARGS', value: 'CSS_EXTRA_ARGS' }
+      { name: 'SC_EXTRA_ARGS', value: 'SC_EXTRA_ARGS' }
       { name: 'NODE_OPTIONS', value: 'NODE_OPTIONS' }
       { name: 'SMTP_PASSWORD', value: 'SMTP_PASSWORD' }
     ]

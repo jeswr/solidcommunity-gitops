@@ -29,4 +29,4 @@ exec node node_modules/@solid/community-server/bin/server.js \
   -f "$CSS_ROOT_FILE_PATH" \
   -b "$CSS_BASE_URL" \
   -p "$CSS_PORT" \
-  ${CSS_EXTRA_ARGS:-}
+  ${SC_EXTRA_ARGS:-}
