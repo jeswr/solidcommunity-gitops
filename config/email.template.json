@@ -1,0 +1,18 @@
+{
+  "comment": "Filled in at container start from SMTP_PASSWORD by docker/entrypoint.sh. Never put the key in this file.",
+  "@context": "https://linkedsoftwaredependencies.org/bundles/npm/@solid/community-server/^7.0.0/components/context.jsonld",
+  "@graph": [
+    {
+      "@type": "Override",
+      "overrideInstance": { "@id": "urn:solid-server:default:EmailSender" },
+      "overrideParameters": {
+        "@type": "BaseEmailSender",
+        "senderName": "no-reply@solidcommunity.net",
+        "emailConfig_host": "smtp.sendgrid.net",
+        "emailConfig_port": 465,
+        "emailConfig_auth_user": "apikey",
+        "emailConfig_auth_pass": ""
+      }
+    }
+  ]
+}

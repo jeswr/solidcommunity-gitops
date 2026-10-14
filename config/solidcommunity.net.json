@@ -1,0 +1,8 @@
+{
+  "comment": "Production: one pod per subdomain, as on solidcommunity.net today.",
+  "@context": "https://linkedsoftwaredependencies.org/bundles/npm/@solid/community-server/^7.0.0/components/context.jsonld",
+  "import": [
+    "./base.json",
+    "css:config/util/identifiers/subdomain.json"
+  ]
+}

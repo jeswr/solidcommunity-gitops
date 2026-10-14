@@ -1,0 +1,40 @@
+name: Build image
+
+on:
+  push:
+    branches: [main]
+    paths: [Dockerfile, package.json, package-lock.json, config/**, templates/**, docker/**]
+  pull_request:
+    paths: [Dockerfile, package.json, package-lock.json, config/**, templates/**, docker/**]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        if: github.event_name != 'pull_request'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: |
+            ghcr.io/${{ github.repository }}:${{ github.sha }}
+            ghcr.io/${{ github.repository }}:main
+      - name: Smoke test
+        run: |
+          docker build -t sc-smoke .
+          docker run -d --name sc -p 3000:3000 -e CSS_BASE_URL=http://localhost:3000/ -e CSS_ROOT_FILE_PATH=/tmp/data sc-smoke
+          for i in $(seq 1 60); do curl -fsS http://localhost:3000/.well-known/openid-configuration >/dev/null && break; sleep 2; done
+          curl -fsS http://localhost:3000/.well-known/openid-configuration >/dev/null || { docker logs sc; exit 1; }
+          curl -fsS -H 'Accept: text/html' http://localhost:3000/ | grep -q mashlib || { echo "Mashlib not served as default UI"; exit 1; }

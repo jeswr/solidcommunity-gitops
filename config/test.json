@@ -1,0 +1,8 @@
+{
+  "comment": "Test environment on an azurewebsites.net hostname, which has no wildcard DNS, so pods live under paths.",
+  "@context": "https://linkedsoftwaredependencies.org/bundles/npm/@solid/community-server/^7.0.0/components/context.jsonld",
+  "import": [
+    "./base.json",
+    "css:config/util/identifiers/suffix.json"
+  ]
+}

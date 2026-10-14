@@ -1,0 +1,8 @@
+{
+  "name": "solidcommunity-gitops",
+  "private": true,
+  "description": "solidcommunity.net deployment: Community Solid Server + Mashlib + config. CSS itself is built from git in the Dockerfile.",
+  "dependencies": {
+    "mashlib": "3.0.0"
+  }
+}
