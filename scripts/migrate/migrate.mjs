@@ -555,6 +555,7 @@ function verifyCommand(opts) {
   }
 
   let pods = 0;
+  let unmarked = 0;
   let indexEntries = 0;
   for (const id of ids) {
     let account;
@@ -585,7 +586,9 @@ function verifyCommand(opts) {
         problem(`pod ${name}: no root .acl`);
       }
       if (!meta?.includes(`<${baseUrl}>`)) {
-        problem(`pod ${name}: root .meta does not mark <pod root> as storage`);
+        // Not fatal: pods made by older tools may lack it, but then CSS doesn't see the pod as a
+        // storage, so the pod quota doesn't apply to it.
+        unmarked += 1;
       }
       pods += 1;
     }
@@ -628,6 +631,9 @@ function verifyCommand(opts) {
 
   console.log(`verified ${ids.length} account(s), ${indexEntries} index entries, ${pods} pod(s)` +
     `${opts.tokens ? `; ${others} other account(s) in the target` : ''}`);
+  if (unmarked > 0) {
+    console.log(`  warning: ${unmarked} pod(s) have no root .meta marking them as a storage (no quota)`);
+  }
   if (problems.length > 0) {
     for (const text of problems) {
       console.log(`  FAIL ${text}`);

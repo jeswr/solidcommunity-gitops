@@ -102,13 +102,14 @@ What is copied (paths under `www/.internal/` in the subdomain layout, `.internal
 | OIDC client registrations (`idp/adapter/Client`) | yes | no, because they don't belong to an account |
 | Cookies, forgot-password, locks, notifications, `idp/tokens`, other `idp/adapter` entries | no | no |
 
-Users stay logged in to the account pages only until their cookie is needed again. Apps have to log in
-again, because refresh tokens and grants are not copied. The issuer keys are copied, so tokens and
-client credentials keep the same issuer and signing keys.
+Because cookies, refresh tokens and grants are not copied, users log in again to the account pages and
+apps log in again. The issuer keys are copied, so the issuer keeps its signing keys, and client
+credentials keep working.
 
 `verify` boots nothing. For each selected account (or every account with `--all`) it checks that the
 record parses, that every index entry exists and contains the account, and that each pod has a root
-`.acl` and a `.meta` marking it as a storage. It also checks `idp/keys/jwks` and the setup markers.
+`.acl`. It warns about pods whose root `.meta` doesn't mark them as a storage, because the pod quota
+doesn't apply to those pods. It also checks `idp/keys/jwks` and the setup markers.
 With `--source` it compares records and pod file counts with the source, and with `--exact` it fails
 if the target holds accounts that were not selected.
 
@@ -127,11 +128,24 @@ What it can't fix:
 - WebIDs change, so anything outside the pods that refers to the old WebIDs or pod URLs no longer
   matches: ACLs and data on other servers, apps' stored data, links and bookmarks.
 - Files with other extensions (HTML, JSON, Markdown, text, files without an extension, binaries) are left
-  alone. So are string matches inside RDF literals, which are rewritten as well.
+  alone. Inside RDF files, matching URLs in literals are rewritten too.
 - OIDC client registrations keep their redirect URIs.
 - Pod names that clash with paths the base host already serves in the suffix layout (`.account`, `.oidc`,
   `.well-known`, and Mashlib's files at the root) are not detected.
 - Only a subdomain-layout source can be rewritten.
+
+### Uploading to Azure Files
+
+`azure-upload.sh` stops the site, copies the directory to the root of the `pods` share with azcopy (using a
+12-hour SAS), and starts the site again. Run `verify` on the local directory first. The script is untested,
+because it needs Azure. Before running it:
+
+- The storage account only accepts traffic from its private endpoint. Either run the script from inside the
+  VNet, or temporarily allow your IP with `az storage account update --public-network-access Enabled`
+  and `az storage account network-rule add --ip-address <ip>`. Remove the rule afterwards. The next
+  deploy also resets public access.
+- Azure Files names are case-insensitive, at most 255 characters long, and can't end in a dot or a space.
+  Check the source with `--names-check` first, because such files would collide or fail to upload.
 
 ### Test
 
