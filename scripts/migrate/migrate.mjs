@@ -271,19 +271,14 @@ function podStats(src, dirs) {
 
 function namesCheck(src) {
   // Azure Files: names are case-insensitive, at most 255 characters, can't end in a dot or
-  // space, and can't contain " \ / : | < > * ? or control characters.
-  const script = `find . -mindepth 1 | awk -F/ '
-    { name=$NF; total++
+  // space, and can't contain " \ : | < > * ? or control characters.
+  const [ caseDupes ] = src.lines('find . -mindepth 1 | LC_ALL=C tr "[:upper:]" "[:lower:]" | LC_ALL=C sort | uniq -d | wc -l | tr -d " "');
+  const [ summary ] = src.lines(`find . -mindepth 1 | LC_ALL=C awk -F/ '
+    { name = $NF; total++
       if (length(name) > 255) long++
       if (name ~ /[. ]$/) trailing++
-      if (name ~ /["\\\\:|<>*?]/ || name ~ /[[:cntrl:]]/) bad++
-      print tolower($0) > "/dev/stderr" }
-    END { printf "entries=%d long=%d trailing=%d badchars=%d\\n", total, long, trailing, bad }
-  ' 2>&1 >/dev/null | sort | uniq -d | wc -l | tr -d ' '; find . -mindepth 1 | awk -F/ '
-    { name=$NF; total++; if (length(name) > 255) long++; if (name ~ /[. ]$/) trailing++
       if (name ~ /["\\\\:|<>*?]/ || name ~ /[[:cntrl:]]/) bad++ }
-    END { printf "entries=%d long=%d trailing=%d badchars=%d\\n", total, long, trailing, bad }'`;
-  const [ caseDupes, summary ] = src.lines(script);
+    END { printf "entries=%d long=%d trailing-dot-or-space=%d bad-chars=%d\\n", total, long, trailing, bad }'`);
   return `${summary} case-insensitive-duplicates=${caseDupes}`;
 }
 
