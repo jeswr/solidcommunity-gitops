@@ -11,10 +11,13 @@ on:
 permissions:
   contents: read
   packages: write
+  id-token: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    # The test environment holds the Azure login used to push to the test registry.
+    environment: test
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
@@ -24,6 +27,15 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: azure/login@v2
+        if: github.event_name != 'pull_request' && vars.AZURE_ACR != ''
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Log in to the Azure registry
+        if: github.event_name != 'pull_request' && vars.AZURE_ACR != ''
+        run: az acr login -n "${{ vars.AZURE_ACR }}"
       - uses: docker/build-push-action@v6
         with:
           context: .
@@ -31,6 +43,8 @@ jobs:
           tags: |
             ghcr.io/${{ github.repository }}:${{ github.sha }}
             ghcr.io/${{ github.repository }}:main
+            ${{ vars.AZURE_ACR != '' && format('{0}.azurecr.io/solidcommunity-gitops:{1}', vars.AZURE_ACR, github.sha) || '' }}
+            ${{ vars.AZURE_ACR != '' && format('{0}.azurecr.io/solidcommunity-gitops:main', vars.AZURE_ACR) || '' }}
       - name: Smoke test
         run: |
           docker build -t sc-smoke .

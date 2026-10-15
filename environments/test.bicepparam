@@ -4,7 +4,8 @@ using '../infra/main.bicep'
 // (subdomain pods need a wildcard domain, which the azurewebsites.net hostname can't give us).
 param env = 'test'
 param planSku = 'B1'
-param image = 'ghcr.io/jeswr/solidcommunity-gitops:main'
+param image = 'sctestffd346a6.azurecr.io/solidcommunity-gitops:main'
+param pullIdentityName = 'sc-test-runtime'
 param cssConfig = 'config/test.json'
 param extraArgs = '--loggingLevel info'
 param maxOldSpaceMb = 1280

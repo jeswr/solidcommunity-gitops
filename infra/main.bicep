@@ -36,11 +36,8 @@ param shareQuotaGb int = 100
 @description('SMTP password (SendGrid API key). Empty disables the email override.')
 param smtpPassword string = ''
 
-@description('Registry username for a private image. Empty for a public image.')
-param registryUser string = ''
-
-@secure()
-param registryPassword string = ''
+@description('Name of an existing user-assigned identity in this resource group with AcrPull on the registry. Empty pulls the image anonymously.')
+param pullIdentityName string = ''
 
 var suffix = uniqueString(resourceGroup().id, env)
 var siteName = 'sc-${env}-${suffix}'
@@ -144,10 +141,18 @@ resource plan 'Microsoft.Web/serverfarms@2024-11-01' = {
   properties: { reserved: true }
 }
 
+resource pullIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' existing = if (!empty(pullIdentityName)) {
+  name: empty(pullIdentityName) ? 'unused' : pullIdentityName
+}
+
 resource site 'Microsoft.Web/sites@2024-11-01' = {
   name: siteName
   location: location
   kind: 'app,linux,container'
+  identity: empty(pullIdentityName) ? null : {
+    type: 'UserAssigned'
+    userAssignedIdentities: { '${pullIdentity!.id}': {} }
+  }
   properties: {
     serverFarmId: plan.id
     httpsOnly: true
@@ -192,9 +197,8 @@ resource main 'Microsoft.Web/sites/sitecontainers@2024-11-01' = {
     image: image
     targetPort: '3000'
     isMain: true
-    authType: empty(registryUser) ? 'Anonymous' : 'UserCredentials'
-    userName: empty(registryUser) ? null : registryUser
-    passwordSecret: empty(registryUser) ? null : registryPassword
+    authType: empty(pullIdentityName) ? 'Anonymous' : 'UserAssigned'
+    userManagedIdentityClientId: empty(pullIdentityName) ? null : pullIdentity!.properties.clientId
     environmentVariables: [
       { name: 'CSS_BASE_URL', value: 'CSS_BASE_URL' }
       { name: 'CSS_CONFIG', value: 'CSS_CONFIG' }
