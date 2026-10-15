@@ -29,6 +29,10 @@ param extraArgs string = '--loggingLevel info'
 @description('Node heap limit in MB (live server uses 6144).')
 param maxOldSpaceMb int = 1536
 
+@description('Storage for pod data. Premium_LRS (SSD file shares, minimum 100 GiB) has much lower latency than Standard_LRS, which CSS feels on every request.')
+@allowed([ 'Standard_LRS', 'Premium_LRS' ])
+param storageSku string = 'Premium_LRS'
+
 @description('Azure Files share quota in GiB.')
 param shareQuotaGb int = 100
 
@@ -41,7 +45,7 @@ param pullIdentityName string = ''
 
 var suffix = uniqueString(resourceGroup().id, env)
 var siteName = 'sc-${env}-${suffix}'
-var storageName = take('sc${env}${suffix}', 24)
+var storageName = take('sc${env}${storageSku == 'Premium_LRS' ? 'p' : ''}${suffix}', 24)
 var shareName = 'pods'
 var mountPath = '/data'
 var privateFilesDnsZoneName = 'privatelink.file.${environment().suffixes.storage}'
@@ -76,11 +80,11 @@ resource vnet 'Microsoft.Network/virtualNetworks@2023-09-01' = {
 resource storage 'Microsoft.Storage/storageAccounts@2023-05-01' = {
   name: storageName
   location: location
-  sku: { name: 'Standard_LRS' }
-  kind: 'StorageV2'
+  sku: { name: storageSku }
+  kind: storageSku == 'Premium_LRS' ? 'FileStorage' : 'StorageV2'
   properties: {
     minimumTlsVersion: 'TLS1_2'
-    allowBlobPublicAccess: false
+    allowBlobPublicAccess: storageSku == 'Premium_LRS' ? null : false
     publicNetworkAccess: 'Disabled'
     networkAcls: { bypass: 'None', defaultAction: 'Deny' }
   }

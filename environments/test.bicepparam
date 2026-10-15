@@ -9,4 +9,5 @@ param pullIdentityName = 'sc-test-runtime'
 param cssConfig = 'config/test.json'
 param extraArgs = '--loggingLevel info'
 param maxOldSpaceMb = 1280
-param shareQuotaGb = 20
+param storageSku = 'Premium_LRS'
+param shareQuotaGb = 100
