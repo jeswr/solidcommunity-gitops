@@ -21,7 +21,7 @@ ENV NODE_ENV=production
 COPY package.json package-lock.json ./
 COPY --from=css /out/*.tgz /tmp/css.tgz
 RUN npm ci --omit=dev --ignore-scripts \
- && npm install --omit=dev --ignore-scripts --no-save /tmp/css.tgz \
+ && npm install --omit=dev --ignore-scripts --no-save /tmp/css.tgz @jeswr/css-cached-storage@0.2.0-alpha.2 \
  && rm /tmp/css.tgz && npm cache clean --force
 COPY config ./config
 COPY templates ./templates
