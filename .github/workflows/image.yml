@@ -7,6 +7,16 @@ on:
   pull_request:
     paths: [Dockerfile, package.json, package-lock.json, config/**, templates/**, docker/**, .github/workflows/image.yml]
   workflow_dispatch:
+    inputs:
+      css_repo:
+        description: CSS git repository to build from (default is the Dockerfile's)
+        required: false
+      css_ref:
+        description: CSS commit to build (default is the Dockerfile's)
+        required: false
+      tag:
+        description: Extra image tag for this build (e.g. hotfixes-abc123); main is only updated when empty
+        required: false
 
 permissions:
   contents: read
@@ -40,11 +50,15 @@ jobs:
         with:
           context: .
           push: ${{ github.event_name != 'pull_request' }}
+          build-args: |
+            ${{ inputs.css_repo && format('CSS_REPO={0}', inputs.css_repo) || '' }}
+            ${{ inputs.css_ref && format('CSS_REF={0}', inputs.css_ref) || '' }}
           tags: |
-            ghcr.io/${{ github.repository }}:${{ github.sha }}
-            ghcr.io/${{ github.repository }}:main
-            ${{ vars.AZURE_ACR != '' && format('{0}.azurecr.io/solidcommunity-gitops:{1}', vars.AZURE_ACR, github.sha) || '' }}
-            ${{ vars.AZURE_ACR != '' && format('{0}.azurecr.io/solidcommunity-gitops:main', vars.AZURE_ACR) || '' }}
+            ${{ !inputs.tag && format('ghcr.io/{0}:{1}', github.repository, github.sha) || '' }}
+            ${{ !inputs.tag && format('ghcr.io/{0}:main', github.repository) || '' }}
+            ${{ !inputs.tag && vars.AZURE_ACR != '' && format('{0}.azurecr.io/solidcommunity-gitops:{1}', vars.AZURE_ACR, github.sha) || '' }}
+            ${{ !inputs.tag && vars.AZURE_ACR != '' && format('{0}.azurecr.io/solidcommunity-gitops:main', vars.AZURE_ACR) || '' }}
+            ${{ inputs.tag && vars.AZURE_ACR != '' && format('{0}.azurecr.io/solidcommunity-gitops:{1}', vars.AZURE_ACR, inputs.tag) || '' }}
       - name: Smoke test
         run: |
           docker build -t sc-smoke .
