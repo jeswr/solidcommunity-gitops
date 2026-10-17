@@ -1,90 +1,15 @@
 {
-  "comment": "Benchmark: keep hot state in memory, because every file operation on the Azure Files share is slow. Single process only.",
-  "@context": [
-    "https://linkedsoftwaredependencies.org/bundles/npm/@solid/community-server/^7.0.0/components/context.jsonld",
-    "https://linkedsoftwaredependencies.org/bundles/npm/@jeswr/css-cached-storage/^0.0.0/components/context.jsonld"
-  ],
+  "comment": "Benchmark ablation: only the locker read counts in memory.",
+  "@context": "https://linkedsoftwaredependencies.org/bundles/npm/@solid/community-server/^7.0.0/components/context.jsonld",
   "@graph": [
-    {
-      "comment": "In-memory read cache for resource bodies (write-back disabled), in front of the file accessor.",
-      "@id": "urn:solid-server:default:CachedDataAccessor",
-      "@type": "CachingDataAccessor",
-      "source": { "@id": "urn:solid-server:default:FileDataAccessor" },
-      "maxReadCacheSize": 1073741824,
-      "maxReadFileSize": 1048576,
-      "maxWriteQueueSize": 0,
-      "maxWriteQueueFileSize": 0,
-      "flushIntervalMs": 0
-    },
-    {
-      "@type": "Override",
-      "overrideInstance": { "@id": "urn:solid-server:default:ResourceStore_Backend" },
-      "overrideParameters": {
-        "@type": "DataAccessorBasedStore",
-        "identifierStrategy": { "@id": "urn:solid-server:default:IdentifierStrategy" },
-        "auxiliaryStrategy": { "@id": "urn:solid-server:default:AuxiliaryStrategy" },
-        "accessor": { "@id": "urn:solid-server:default:CachedDataAccessor" },
-        "metadataStrategy": { "@id": "urn:solid-server:default:MetadataStrategy" }
-      }
-    },
     {
       "comment": "Read counts of the read-write locker in memory, like the locks themselves.",
       "@type": "Override",
-      "overrideInstance": { "@id": "urn:solid-server:default:LockStorage" },
-      "overrideParameters": { "@type": "MemoryMapStorage" }
-    },
-    {
-      "comment": "Login cookies in memory: users log in again after a restart.",
-      "@type": "Override",
-      "overrideInstance": { "@id": "urn:solid-server:default:CookieStorage" },
+      "overrideInstance": {
+        "@id": "urn:solid-server:default:LockStorage"
+      },
       "overrideParameters": {
-        "@type": "WrappedExpiringStorage",
-        "source": {
-          "@type": "ContainerPathStorage",
-          "relativePath": "/accounts/cookies/",
-          "source": { "@type": "MemoryMapStorage" }
-        }
-      }
-    },
-    {
-      "comment": "OIDC provider state in memory, except dynamically registered clients, which stay on disk.",
-      "@type": "Override",
-      "overrideInstance": { "@id": "urn:solid-server:default:IdpAdapterFactory" },
-      "overrideParameters": {
-        "@type": "ClientCredentialsAdapterFactory",
-        "webIdStore": { "@id": "urn:solid-server:default:WebIdStore" },
-        "clientCredentialsStore": { "@id": "urn:solid-server:default:ClientCredentialsStore" },
-        "source": {
-          "@type": "ClientIdAdapterFactory",
-          "converter": { "@id": "urn:solid-server:default:RepresentationConverter" },
-          "source": {
-            "@type": "ExpiringAdapterFactory",
-            "storage": {
-              "@type": "WrappedExpiringStorage",
-              "source": { "@type": "MemoryMapStorage" }
-            },
-            "clientStorage": {
-              "@type": "WrappedExpiringStorage",
-              "source": {
-                "@type": "ContainerPathStorage",
-                "relativePath": "/idp/adapter/",
-                "source": { "@id": "urn:solid-server:default:KeyValueStorage" }
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "comment": "Client-credential lookups from memory.",
-      "@type": "Override",
-      "overrideInstance": { "@id": "urn:solid-server:default:ClientCredentialsStore" },
-      "overrideParameters": {
-        "@type": "CachingClientCredentialsStore",
-        "source": {
-          "@type": "BaseClientCredentialsStore",
-          "storage": { "@id": "urn:solid-server:default:AccountStorage" }
-        }
+        "@type": "MemoryMapStorage"
       }
     }
   ]
