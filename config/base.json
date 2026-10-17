@@ -22,7 +22,7 @@
     "css:config/ldp/metadata-parser/default.json",
     "css:config/ldp/metadata-writer/default.json",
     "css:config/ldp/modes/default.json",
-    "css:config/storage/backend/pod-quota-file.json",
+    "css:config/storage/backend/file.json",
     "css:config/storage/key-value/resource-store.json",
     "css:config/storage/location/pod.json",
     "css:config/storage/middleware/default.json",
@@ -51,16 +51,6 @@
         "@type": "StaticFolderGenerator",
         "templateFolder": "templates/root",
         "resourcesGenerator": { "@id": "urn:solid-server:default:TemplatedResourcesGenerator" }
-      }
-    },
-    {
-      "comment": "Maximum pod size of 50 MB.",
-      "@type": "Override",
-      "overrideInstance": { "@id": "urn:solid-server:default:QuotaStrategy" },
-      "overrideParameters": {
-        "@type": "PodQuotaStrategy",
-        "limit_amount": 50000000,
-        "limit_unit": "bytes"
       }
     },
     {
