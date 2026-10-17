@@ -61,7 +61,7 @@ jobs:
             ${{ inputs.tag && vars.AZURE_ACR != '' && format('{0}.azurecr.io/solidcommunity-gitops:{1}', vars.AZURE_ACR, inputs.tag) || '' }}
       - name: Smoke test
         run: |
-          docker build -t sc-smoke .
+          docker build -t sc-smoke ${{ inputs.css_repo && format('--build-arg CSS_REPO={0}', inputs.css_repo) || '' }} ${{ inputs.css_ref && format('--build-arg CSS_REF={0}', inputs.css_ref) || '' }} .
           docker run -d --name sc -p 3000:3000 -e CSS_BASE_URL=http://localhost:3000/ -e CSS_ROOT_FILE_PATH=/tmp/data sc-smoke
           for i in $(seq 1 60); do curl -fsS http://localhost:3000/.well-known/openid-configuration >/dev/null && break; sleep 2; done
           curl -fsS http://localhost:3000/.well-known/openid-configuration >/dev/null || { docker logs sc; exit 1; }

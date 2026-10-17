@@ -44,6 +44,12 @@
       }
     },
     {
+      "comment": "Keep the locker's read counts in memory, like the locks themselves. Upstream writes a counter file on every read, which costs a round trip to the file share each time.",
+      "@type": "Override",
+      "overrideInstance": { "@id": "urn:solid-server:default:LockStorage" },
+      "overrideParameters": { "@type": "MemoryMapStorage" }
+    },
+    {
       "comment": "Create a public, read-only root container on first start.",
       "@type": "Override",
       "overrideInstance": { "@id": "urn:solid-server:default:RootFolderGenerator" },
