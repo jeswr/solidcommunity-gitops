@@ -35,10 +35,13 @@ jobs:
       - name: Deploy infrastructure and app
         env:
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          ALERT_EMAIL: ${{ vars.ALERT_EMAIL }}
+          INCIDENT_GITHUB_TOKEN: ${{ secrets.INCIDENT_GITHUB_TOKEN }}
         run: |
           az deployment group create \
             --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" \
             --name "sc-${{ github.run_id }}" \
             --parameters "environments/${{ inputs.env || 'test' }}.bicepparam" \
             --parameters smtpPassword="$SMTP_PASSWORD" \
+            --parameters alertEmail="$ALERT_EMAIL" incidentGithubToken="$INCIDENT_GITHUB_TOKEN" \
             --query properties.outputs -o json
