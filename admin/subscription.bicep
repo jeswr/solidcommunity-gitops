@@ -1,4 +1,4 @@
-// One-off setup for the solidcommunity.net production resource group, run by a subscription admin.
+// One-off setup for the solidcommunity.net resource group (SolidOS preview, then production), run by a subscription admin.
 // Creates the resource group, a monthly budget with alerts, and the operator's role assignments.
 // Everything inside the resource group is then created by infra/main.bicep from GitHub Actions.
 //
@@ -6,7 +6,7 @@
 targetScope = 'subscription'
 
 @description('Resource group name.')
-param resourceGroupName string = 'solidcommunity-prod'
+param resourceGroupName string = 'solidcommunity'
 
 @description('Region for the resource group and everything in it.')
 param location string = 'uksouth'
@@ -15,7 +15,7 @@ param location string = 'uksouth'
 param operatorObjectId string
 
 @description('Monthly budget for the resource group, in the billing currency.')
-param monthlyBudget int = 250
+param monthlyBudget int = 300
 
 @description('Email addresses that receive the budget alerts.')
 param alertEmails array
