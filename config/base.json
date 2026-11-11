@@ -87,6 +87,36 @@
       }
     },
     {
+      "comment": "Sign-up also creates the account's Pod and WebID, so every account starts with one.",
+      "@type": "Override",
+      "overrideInstance": { "@id": "urn:solid-server:default:RegisterPasswordAccountHtml" },
+      "overrideParameters": {
+        "@type": "HtmlViewEntry",
+        "filePath": "./templates/identity/password/register.html.ejs",
+        "route": { "@id": "urn:solid-server:default:RegisterPasswordRoute" }
+      }
+    },
+    {
+      "comment": "Simple account page (Pod, WebID, email, password) with the upstream lists under Advanced.",
+      "@type": "Override",
+      "overrideInstance": { "@id": "urn:solid-server:default:AccountIdHtml" },
+      "overrideParameters": {
+        "@type": "HtmlViewEntry",
+        "filePath": "./templates/identity/account/resource.html.ejs",
+        "route": { "@id": "urn:solid-server:default:AccountIdRoute" }
+      }
+    },
+    {
+      "comment": "App consent page that shows the person's name instead of WebID and client IDs.",
+      "@type": "Override",
+      "overrideInstance": { "@id": "urn:solid-server:default:OidcConsentHtml" },
+      "overrideParameters": {
+        "@type": "HtmlViewEntry",
+        "filePath": "./templates/identity/oidc/consent.html.ejs",
+        "route": { "@id": "urn:solid-server:default:OidcConsentRoute" }
+      }
+    },
+    {
       "comment": "solidcommunity.net look (ODI and Solid branding) for every account, login and error page.",
       "@type": "Override",
       "overrideInstance": { "@id": "urn:solid-server:default:MainTemplateEngine" },

@@ -20,8 +20,11 @@ forked CSS release and no custom components.
 | `templates/root/wac/index.html` | Landing page, served for the root container to browsers (upstream `IndexRepresentationStore`). Holds the acceptable use policy. Only written when the root is first created, so an existing root needs it copied in by hand. |
 | `templates/pod/wac` | SolidOS pod template, copied from SolidOS/css-mashlib@5cb4457 (identical to pivot's). |
 | `templates/identity/password/login.html.ejs` | Login page in the site layout. Accepts a bare username so that NSS-migrated accounts (`<user>@users.css.pod`) can still log in. |
+| `templates/identity/password/register.html.ejs` | Sign-up asks for a name and username and creates the account's Pod and WebID straight away, so every account has one. |
+| `templates/identity/account/resource.html.ejs` | Simple account page: your Pod, your WebID, change email, change password. The upstream lists (extra logins, Pods, WebIDs, tokens) sit under "Advanced settings". |
+| `templates/identity/oidc/consent.html.ejs` | App consent page that shows the person's name and picture from their profile; the client ID moves under "App details". |
 | `templates/main.html.ejs` | Site layout (ODI and Solid branding) for every CSS account, login and consent page. The upstream page templates are unchanged. |
-| `templates/static/` | Stylesheet, logged-in check and Solid logo, served under `/.well-known/sc/`. |
+| `templates/static/` | Stylesheet, the header's profile menu (name and picture from the WebID profile) and the Solid logo, served under `/.well-known/sc/`. |
 | `infra/main.bicep` | App Service (Linux, sitecontainers) with an Azure Files share over a private endpoint. Based on theodi/css-azure-deployment. |
 | `environments/<env>.bicepparam` | Desired state of each environment: image, SKU, base URL. |
 | `.github/workflows/image.yml` | Builds the image, smoke-tests it and pushes it to GHCR. |

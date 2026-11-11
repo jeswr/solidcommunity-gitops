@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title><%= extractTitle(htmlBody) %> · solidcommunity.net</title>
   <link rel="icon" href="<%= baseUrl -%>.well-known/sc/solid.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="<%= baseUrl -%>.well-known/sc/site.css?v=1" type="text/css">
+  <link rel="stylesheet" href="<%= baseUrl -%>.well-known/sc/site.css?v=2" type="text/css">
   <script type="text/javascript" src="<%= baseUrl -%>.well-known/css/scripts/util.js?v=7"></script>
-  <script type="text/javascript" src="<%= baseUrl -%>.well-known/sc/site.js?v=1" defer></script>
+  <script type="text/javascript" src="<%= baseUrl -%>.well-known/sc/site.js?v=2"></script>
 </head>
 <body class="app">
   <div class="brandbar" aria-hidden="true"></div>
@@ -50,7 +50,7 @@
 
 <%
 function extractTitle(body) {
-  const match = /<h1[^>]*>([^<]*)<\/h1>/u.exec(body);
-  return match ? match[1].trim() : 'Solid';
+  const match = /<h1[^>]*>([\s\S]*?)<\/h1>/u.exec(body);
+  return match ? match[1].replace(/<[^>]*>/gu, '').replace(/\s+/gu, ' ').trim() : 'Solid';
 }
 %>
