@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title><%= extractTitle(htmlBody) %> · solidcommunity.net</title>
+  <link rel="icon" href="<%= baseUrl -%>.well-known/sc/solid.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="<%= baseUrl -%>.well-known/sc/site.css?v=1" type="text/css">
+  <script type="text/javascript" src="<%= baseUrl -%>.well-known/css/scripts/util.js?v=7"></script>
+  <script type="text/javascript" src="<%= baseUrl -%>.well-known/sc/site.js?v=1" defer></script>
+</head>
+<body class="app">
+  <div class="brandbar" aria-hidden="true"></div>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="<%= baseUrl %>" aria-label="solidcommunity.net home">
+        <svg class="brand-odi" viewBox="0 0 200 85.8" fill="currentColor" role="img" aria-label="Open Data Institute"><path d="M160,.7V27.2A37.9,37.9,0,0,0,136.6,3.7,49.7,49.7,0,0,0,119.1.6H82.7V27a42.9,42.9,0,1,0,0,31.8V85.1h36.4a51.9,51.9,0,0,0,17.5-3,41.9,41.9,0,0,0,13.8-8.5A40.1,40.1,0,0,0,160,58.5V85.1h40V.7Z"/></svg>
+        <span class="brand-divider" aria-hidden="true"></span>
+        <img class="brand-solid" src="<%= baseUrl -%>.well-known/sc/solid.svg" alt="Solid">
+        <span class="brand-name">solidcommunity.net</span>
+      </a>
+      <nav class="site-nav" aria-label="Main">
+        <a class="nav-link hide-sm" href="https://solidproject.org/">About Solid</a>
+        <a class="btn btn-secondary btn-sm when-signed-out" href="<%= baseUrl -%>.account/login/password/">Log in</a>
+        <a class="btn btn-primary btn-sm when-signed-out hide-xs" href="<%= baseUrl -%>.account/login/password/register/">Sign up</a>
+        <a class="btn btn-secondary btn-sm when-signed-in" data-account-link href="<%= baseUrl -%>.account/account/">Your account</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="page">
+    <div class="panel">
+      <%- htmlBody %>
+    </div>
+  </main>
+
+  <footer class="site-footer site-footer-compact">
+    <div class="wrap">
+      <p>
+        A community Solid server supported by the
+        <a href="https://theodi.org/">Open Data Institute</a>.
+        Powered by <a href="https://github.com/CommunitySolidServer/CommunitySolidServer">Community Solid Server</a>
+        and <a href="https://github.com/SolidOS/solidos">SolidOS</a>.
+      </p>
+      <p><a href="<%= baseUrl %>#acceptable-use">Acceptable use policy</a></p>
+    </div>
+  </footer>
+</body>
+</html>
+
+<%
+function extractTitle(body) {
+  const match = /<h1[^>]*>([^<]*)<\/h1>/u.exec(body);
+  return match ? match[1].trim() : 'Solid';
+}
+%>

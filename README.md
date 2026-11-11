@@ -16,9 +16,12 @@ forked CSS release and no custom components.
 | `config/solidcommunity.net.json` | Production entry point, with one pod per subdomain. |
 | `config/test.json` | Test entry point, with pods under paths, because `*.azurewebsites.net` has no wildcard DNS. |
 | `config/email.template.json` | SendGrid settings. The key is injected at start-up from `SMTP_PASSWORD` and is never committed. |
-| `templates/root/wac/.acl` | Public, read-only server root (the Mashlib landing page). |
+| `templates/root/wac/.acl` | Public, read-only server root. |
+| `templates/root/wac/index.html` | Landing page, served for the root container to browsers (upstream `IndexRepresentationStore`). Holds the acceptable use policy. Only written when the root is first created, so an existing root needs it copied in by hand. |
 | `templates/pod/wac` | SolidOS pod template, copied from SolidOS/css-mashlib@5cb4457 (identical to pivot's). |
-| `templates/identity/password/login.html.ejs` | Upstream login page. Accepts a bare username so that NSS-migrated accounts (`<user>@users.css.pod`) can still log in. |
+| `templates/identity/password/login.html.ejs` | Login page in the site layout. Accepts a bare username so that NSS-migrated accounts (`<user>@users.css.pod`) can still log in. |
+| `templates/main.html.ejs` | Site layout (ODI and Solid branding) for every CSS account, login and consent page. The upstream page templates are unchanged. |
+| `templates/static/` | Stylesheet, logged-in check and Solid logo, served under `/.well-known/sc/`. |
 | `infra/main.bicep` | App Service (Linux, sitecontainers) with an Azure Files share over a private endpoint. Based on theodi/css-azure-deployment. |
 | `environments/<env>.bicepparam` | Desired state of each environment: image, SKU, base URL. |
 | `.github/workflows/image.yml` | Builds the image, smoke-tests it and pushes it to GHCR. |

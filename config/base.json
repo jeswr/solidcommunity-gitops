@@ -87,6 +87,16 @@
       }
     },
     {
+      "comment": "solidcommunity.net look (ODI and Solid branding) for every account, login and error page.",
+      "@type": "Override",
+      "overrideInstance": { "@id": "urn:solid-server:default:MainTemplateEngine" },
+      "overrideParameters": {
+        "@type": "StaticTemplateEngine",
+        "templateEngine": { "@id": "urn:solid-server:default:TemplateEngine" },
+        "template": "./templates/main.html.ejs"
+      }
+    },
+    {
       "comment": "Serve the Mashlib databrowser as the default HTML representation.",
       "@id": "urn:solid-server:default:DefaultUiConverter",
       "@type": "ConstantConverter",
@@ -108,7 +118,7 @@
       }]
     },
     {
-      "comment": "Serve the Mashlib bundle from the server root.",
+      "comment": "Serve the Mashlib bundle from the server root, and the solidcommunity.net stylesheet, script and logo under /.well-known/sc/.",
       "@id": "urn:solid-server:default:StaticAssetHandler",
       "@type": "StaticAssetHandler",
       "assets": [
@@ -116,6 +126,11 @@
           "@type": "StaticAssetEntry",
           "relativeUrl": "/",
           "filePath": "./node_modules/mashlib/dist/"
+        },
+        {
+          "@type": "StaticAssetEntry",
+          "relativeUrl": "/.well-known/sc/",
+          "filePath": "./templates/static/"
         }
       ]
     }

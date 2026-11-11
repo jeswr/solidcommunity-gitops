@@ -1,0 +1,9 @@
+@prefix acl: <http://www.w3.org/ns/auth/acl#>.
+@prefix foaf: <http://xmlns.com/foaf/0.1/>.
+
+# The landing page is public and read-only, like the root container itself.
+<#public>
+    a               acl:Authorization;
+    acl:agentClass  foaf:Agent;
+    acl:mode        acl:Read;
+    acl:accessTo    <./index.html>.
