@@ -14,7 +14,7 @@ on:
         required: true
         default: test
         type: choice
-        options: [test, prod]
+        options: [test, preview, prod]
       stop_first:
         description: >-
           Stop the site before deploying and start it afterwards. About 4 minutes down, but
