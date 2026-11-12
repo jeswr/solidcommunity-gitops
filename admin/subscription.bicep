@@ -1,5 +1,6 @@
 // One-off setup for the solidcommunity.net resource group (SolidOS preview, then production), run by a subscription admin.
-// Creates the resource group, a monthly budget with alerts, and the operator's role assignments.
+// Creates the resource group, a monthly budget with alerts, the operator's role assignments, and the
+// container registry plus managed identities GitHub Actions deploys with.
 // Everything inside the resource group is then created by infra/main.bicep from GitHub Actions.
 //
 //   az deployment sub create -l uksouth -f admin/subscription.bicep -p admin/subscription.bicepparam
@@ -22,6 +23,12 @@ param alertEmails array
 
 @description('First day of the budget period, the 1st of a month (YYYY-MM-01).')
 param budgetStartDate string
+
+@description('Container registry name (globally unique, 5-50 alphanumerics).')
+param registryName string
+
+@description('GitHub OIDC subject prefix for the repo: repo:<owner>@<ownerId>/<repo>@<repoId>.')
+param githubSubjectPrefix string
 
 var contributor = 'b24988ac-6180-42a0-ab88-20f7382dd24c'
 var rbacAdministrator = 'f58310d9-a9f6-439a-9e8d-f62e7b41a168'
@@ -52,7 +59,11 @@ module scoped 'subscription-rg.bicep' = {
     monthlyBudget: monthlyBudget
     alertEmails: alertEmails
     budgetStartDate: budgetStartDate
+    registryName: registryName
+    githubSubjectPrefix: githubSubjectPrefix
   }
 }
 
 output resourceGroupId string = rg.id
+output deployerClientId string = scoped.outputs.deployerClientId
+output registryLoginServer string = scoped.outputs.registryLoginServer
