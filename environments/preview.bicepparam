@@ -5,8 +5,9 @@ using '../infra/main.bicep'
 // same resource group as production, with its own plan, storage and network.
 param env = 'preview'
 param planSku = 'B1'
-param image = '<registry>.azurecr.io/solidcommunity-gitops:main'
-param pullIdentityName = 'sc-preview-runtime'
+// CSS main plus the fork fixes (#132, #135, #136, #138-#140): upstream main alone crashes about hourly.
+param image = 'odisolidcommunity.azurecr.io/solidcommunity-gitops:hotfixes-ca52454c2'
+param pullIdentityName = 'sc-runtime'
 param cssConfig = 'config/test.json'
 param extraArgs = '--loggingLevel info'
 param maxOldSpaceMb = 1280
