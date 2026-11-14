@@ -1,0 +1,52 @@
+name: solidcommunity.net uptime
+
+# Probes the live site through Cloudflare every 5 minutes (GitHub may delay scheduled runs).
+# After 3 failed probes a minute apart it opens an issue labelled `outage`, and closes it on recovery.
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+concurrency:
+  group: uptime
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Probe solidcommunity.net
+        id: probe
+        run: |
+          for i in 1 2 3; do
+            ok=1; detail=""
+            for u in https://solidcommunity.net/ https://solidcommunity.net/.well-known/openid-configuration; do
+              c=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "$u" || true)
+              [ "$c" = 200 ] || { ok=0; detail="$detail $u -> ${c:-000};"; }
+            done
+            if [ $ok = 1 ]; then echo "down=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+            echo "probe $i failed:$detail"
+            [ $i -lt 3 ] && sleep 60
+          done
+          echo "down=true" >> "$GITHUB_OUTPUT"
+          echo "detail=$detail" >> "$GITHUB_OUTPUT"
+
+      - name: Open or close outage issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DOWN: ${{ steps.probe.outputs.down }}
+          DETAIL: ${{ steps.probe.outputs.detail }}
+        run: |
+          open=$(gh issue list -R "$GITHUB_REPOSITORY" --label outage --state open --json number -q '.[0].number')
+          now=$(date -u +%FT%TZ)
+          if [ "$DOWN" = true ] && [ -z "$open" ]; then
+            gh issue create -R "$GITHUB_REPOSITORY" --label outage --assignee jeswr \
+              --title "solidcommunity.net is down ($now)" \
+              --body "Uptime check failed 3 times a minute apart at $now:$DETAIL Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          elif [ "$DOWN" != true ] && [ -n "$open" ]; then
+            gh issue close "$open" -R "$GITHUB_REPOSITORY" -c "Recovered: uptime check passed at $now."
+          fi
