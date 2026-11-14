@@ -1,0 +1,106 @@
+<div class="split">
+  <section class="split-intro">
+    <h1>Create your account</h1>
+    <p class="lead">Sign up to get a free Solid Pod and a WebID, your identity on the Solid web.</p>
+    <div class="note">
+      <p>This is a community server for trying out Solid. Don't store personal, sensitive or commercial data here. See the <a href="<%= baseUrl %>#acceptable-use">acceptable use policy</a>.</p>
+    </div>
+  </section>
+
+  <form method="post" id="mainForm" class="card">
+    <p class="error" id="error"></p>
+
+    <fieldset>
+      <legend class="hidden">Your account</legend>
+      <ol>
+        <li>
+          <label for="displayName">Your name</label>
+          <input id="displayName" type="text" name="displayName" autocomplete="name" autofocus>
+        </li>
+        <li>
+          <label for="podName">Username</label>
+          <input id="podName" type="text" name="podName" autocomplete="off" autocapitalize="none" spellcheck="false"
+                 pattern="[a-zA-Z0-9][a-zA-Z0-9\-]*" required>
+          <p class="field-hint">Letters, numbers and hyphens. It becomes your Pod's address and can't be changed.</p>
+        </li>
+        <li>
+          <label for="email">Email</label>
+          <input id="email" type="email" name="email" autocomplete="email" required>
+        </li>
+        <li>
+          <label for="password">Password</label>
+          <input id="password" type="password" name="password" autocomplete="new-password" required>
+        </li>
+        <li>
+          <label for="confirmPassword">Confirm password</label>
+          <input id="confirmPassword" type="password" name="confirmPassword" autocomplete="new-password" required>
+        </li>
+      </ol>
+    </fieldset>
+
+    <p class="actions">
+      <button type="submit" name="submit" disabled>Create account</button>
+    </p>
+
+    <ul class="actions">
+      <li>Already have an account? <a id="login-link" href="" class="link">Log in</a></li>
+    </ul>
+  </form>
+</div>
+
+<script>
+  // Sign-up creates the account, its email/password login and one Pod (with a WebID) in one go,
+  // so that every account starts with a Pod. Steps that succeeded are not repeated on a retry,
+  // e.g. when the chosen username is already taken.
+  let passwordCreateUrl;
+  let oidcLocation;
+  let loginCreated = false;
+  (async() => {
+    let controls = await fetchControls('<%= idpIndex %>');
+    updateElement('login-link', controls.html.password.login, { href: true });
+
+    addPostListener(async() => {
+      validatePasswordConfirmation('password');
+      const data = Object.fromEntries(new FormData(document.getElementById('mainForm')));
+      const podName = data.podName.trim().toLowerCase();
+      if (!/^[a-z0-9][a-z0-9-]*$/u.test(podName)) {
+        throw new Error('Choose a username with only letters, numbers and hyphens.');
+      }
+
+      if (!passwordCreateUrl) {
+        const res = await fetch(controls.account.create, { method: 'POST' });
+        const json = await res.json();
+        // Will only be defined if we are in a OIDC interaction
+        oidcLocation = json.location;
+        // Now with cookie
+        controls = await fetchControls('<%= idpIndex %>');
+        passwordCreateUrl = controls.password.create;
+      }
+
+      if (!loginCreated) {
+        const res = await postJson(passwordCreateUrl, { email: data.email, password: data.password, confirmPassword: data.confirmPassword });
+        if (res.status >= 400) {
+          throw new Error((await res.json()).message);
+        }
+        loginCreated = true;
+      }
+
+      // The name is used for foaf:name in the new profile; keep it to characters that are safe in Turtle.
+      const name = data.displayName.replace(/["\\<>&\n\r]/gu, '').trim();
+      const res = await postJson(controls.account.pod, {
+        name: podName,
+        settings: { linkStorage: true, ...name ? { name } : {} },
+      });
+      if (res.status >= 400) {
+        const { message } = await res.json();
+        throw new Error(/already/iu.test(message) ? `The username "${podName}" is already taken. Please choose another one.` : message);
+      }
+
+      // In case there is an OIDC location, we need to fetch it to force the OIDC library to go to the next step
+      if (oidcLocation) {
+        await fetch(oidcLocation);
+      }
+      location.href = controls.html.account.account;
+    });
+  })();
+</script>
