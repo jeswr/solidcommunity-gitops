@@ -1,6 +1,9 @@
 {
   "comment": "solidcommunity.net: upstream CSS components only, with Mashlib as the UI. Pick an identifier strategy in the entry config (solidcommunity.net.json or test.json).",
-  "@context": "https://linkedsoftwaredependencies.org/bundles/npm/@solid/community-server/^7.0.0/components/context.jsonld",
+  "@context": [
+    "https://linkedsoftwaredependencies.org/bundles/npm/@solid/community-server/^7.0.0/components/context.jsonld",
+    "https://linkedsoftwaredependencies.org/bundles/npm/@jeswr/css-cached-storage/^0.0.0/components/context.jsonld"
+  ],
   "import": [
     "css:config/app/init/initialize-root.json",
     "css:config/app/main/default.json",
@@ -33,6 +36,25 @@
     "css:config/util/variables/default.json"
   ],
   "@graph": [
+    {
+      "comment": "In-memory read cache in front of the file share: every Azure Files call is a network round trip, and CSS reads the same ACLs, metadata and profiles on every request. Writes go straight through (both write-queue limits are 0), so nothing is lost on a crash. Safe only with a single server process writing to the share.",
+      "@id": "urn:solid-server:default:CachedDataAccessor",
+      "@type": "CachingDataAccessor",
+      "source": { "@id": "urn:solid-server:default:FileDataAccessor" },
+      "maxReadCacheSize": 268435456,
+      "maxReadFileSize": 1048576,
+      "maxWriteQueueSize": 0,
+      "maxWriteQueueFileSize": 0,
+      "flushIntervalMs": 0
+    },
+    {
+      "@type": "Override",
+      "overrideInstance": { "@id": "urn:solid-server:default:ResourceStore_Backend" },
+      "overrideParameters": {
+        "@type": "DataAccessorBasedStore",
+        "accessor": { "@id": "urn:solid-server:default:CachedDataAccessor" }
+      }
+    },
     {
       "comment": "Single process, so locks stay in memory (as on the DigitalOcean server). Expire idle locks after 30 s and cap any lock at 60 s.",
       "@type": "Override",
@@ -127,11 +149,11 @@
       }
     },
     {
-      "comment": "Serve the Mashlib databrowser as the default HTML representation.",
+      "comment": "Serve the Mashlib databrowser as the default HTML representation. templates/databrowser.html is Mashlib's own page, loading the bundle from jsDelivr (Brotli, cached at the edge) instead of sending the 3.8 MB file uncompressed from App Service.",
       "@id": "urn:solid-server:default:DefaultUiConverter",
       "@type": "ConstantConverter",
       "contentType": "text/html",
-      "filePath": "./node_modules/mashlib/dist/databrowser.html",
+      "filePath": "./templates/databrowser.html",
       "options_container": true,
       "options_document": true,
       "options_minQuality": 1,

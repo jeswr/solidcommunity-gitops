@@ -3,6 +3,7 @@
   "private": true,
   "description": "solidcommunity.net deployment: Community Solid Server + Mashlib + config. CSS itself is built from git in the Dockerfile.",
   "dependencies": {
+    "@jeswr/css-cached-storage": "0.2.0-alpha.2",
     "mashlib": "3.0.0"
   }
 }

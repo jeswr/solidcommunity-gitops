@@ -19,6 +19,7 @@ forked CSS release and no custom components.
 | `templates/root/wac/.acl` | Public, read-only server root. |
 | `templates/root/wac/index.html` | Landing page, served for the root container to browsers (upstream `IndexRepresentationStore`). Holds the acceptable use policy. Only written when the root is first created, so an existing root needs it copied in by hand. |
 | `templates/pod/wac` | SolidOS pod template, copied from SolidOS/css-mashlib@5cb4457 (identical to pivot's). |
+| `templates/databrowser.html` | Mashlib's own page, loading the bundle and stylesheet from jsDelivr (Brotli, edge-cached) at the version in `package.json`. Keep the two in step. |
 | `templates/identity/password/login.html.ejs` | Login page in the site layout. Accepts a bare username so that NSS-migrated accounts (`<user>@users.css.pod`) can still log in. |
 | `templates/identity/password/register.html.ejs` | Sign-up asks for a name and username and creates the account's Pod and WebID straight away, so every account has one. |
 | `templates/identity/account/resource.html.ejs` | Simple account page: your Pod, your WebID, change email, change password. The upstream lists (extra logins, Pods, WebIDs, tokens) sit under "Advanced settings". |
