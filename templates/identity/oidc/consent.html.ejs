@@ -55,7 +55,9 @@
     }
     setVisibility('authorize', webIds.length > 0);
 
-    // List the identities by name (from the public profile), with the WebID itself as the tooltip.
+    // List the identities straight away, with the WebID's host as a placeholder.
+    // Names and pictures are filled in as each public profile arrives, so a slow or
+    // unreachable profile never holds up the form.
     for (const webId of webIds) {
       const li = document.createElement('li');
       li.className = 'radio identity';
@@ -73,11 +75,15 @@
       li.append(label);
       elements.webIdList.append(li);
 
-      const profile = window.sc ? await window.sc.loadProfile(webId) : { webId };
-      strong.textContent = window.sc ? window.sc.displayName(profile) : webId;
+      strong.textContent = window.sc ? window.sc.displayName({ webId }) : webId;
       small.textContent = new URL(webId).host;
       if (window.sc) {
-        label.insertBefore(window.sc.avatar(profile, 40), text);
+        const placeholder = window.sc.avatar({ webId }, 40);
+        label.insertBefore(placeholder, text);
+        window.sc.loadProfile(webId).then((profile) => {
+          strong.textContent = window.sc.displayName(profile);
+          placeholder.replaceWith(window.sc.avatar(profile, 40));
+        });
       }
     }
     // A single identity needs no choice: hide its radio button.

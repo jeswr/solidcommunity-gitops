@@ -7,7 +7,17 @@
   <meta name="description" content="Get a free Solid Pod and WebID. A community Solid server supported by the Open Data Institute.">
   <link rel="icon" href="./.well-known/sc/solid.svg" type="image/svg+xml">
   <link rel="stylesheet" href="./.well-known/sc/site.css?v=2" type="text/css">
-  <script type="text/javascript" src="./.well-known/sc/site.js?v=2"></script>
+  <!-- RDF libraries for profile.js: pinned versions, loaded only when a profile is shown. -->
+  <script type="importmap">
+    {
+      "imports": {
+        "n3": "https://cdn.jsdelivr.net/npm/n3@2.13.12/browser/n3.esm.min.js",
+        "@rdfjs/wrapper": "https://esm.sh/@rdfjs/wrapper@0.34.0",
+        "@solid/object": "https://esm.sh/@solid/object@0.8.0?external=@rdfjs/wrapper"
+      }
+    }
+  </script>
+  <script type="text/javascript" src="./.well-known/sc/site.js?v=3"></script>
 </head>
 <body class="home">
   <div class="brandbar" aria-hidden="true"></div>

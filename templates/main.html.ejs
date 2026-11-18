@@ -6,8 +6,18 @@
   <title><%= extractTitle(htmlBody) %> · solidcommunity.net</title>
   <link rel="icon" href="<%= baseUrl -%>.well-known/sc/solid.svg" type="image/svg+xml">
   <link rel="stylesheet" href="<%= baseUrl -%>.well-known/sc/site.css?v=2" type="text/css">
+  <!-- RDF libraries for profile.js: pinned versions, loaded only when a profile is shown. -->
+  <script type="importmap">
+    {
+      "imports": {
+        "n3": "https://cdn.jsdelivr.net/npm/n3@2.13.12/browser/n3.esm.min.js",
+        "@rdfjs/wrapper": "https://esm.sh/@rdfjs/wrapper@0.34.0",
+        "@solid/object": "https://esm.sh/@solid/object@0.8.0?external=@rdfjs/wrapper"
+      }
+    }
+  </script>
   <script type="text/javascript" src="<%= baseUrl -%>.well-known/css/scripts/util.js?v=7"></script>
-  <script type="text/javascript" src="<%= baseUrl -%>.well-known/sc/site.js?v=2"></script>
+  <script type="text/javascript" src="<%= baseUrl -%>.well-known/sc/site.js?v=3"></script>
 </head>
 <body class="app">
   <div class="brandbar" aria-hidden="true"></div>
