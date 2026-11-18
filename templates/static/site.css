@@ -103,8 +103,6 @@ pre {
   text-decoration: none;
 }
 .brand:hover { color: var(--fg); }
-.brand-odi { height: 24px; width: auto; flex-shrink: 0; }
-.brand-divider { width: 1px; height: 28px; background: var(--line-strong); flex-shrink: 0; }
 .brand-solid { width: 32px; height: 32px; flex-shrink: 0; }
 .brand-name {
   font-size: 17px;
@@ -732,7 +730,6 @@ form .hidden:not(button) { display: block; max-height: 0; overflow: hidden; }
   border-bottom: 1px solid #333;
 }
 .footer-brand { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
-.footer-brand svg { height: 28px; width: auto; }
 .footer-brand img { width: 34px; height: 34px; }
 .site-footer-full p { margin: 0; max-width: 30em; color: #d9d9d9; }
 .site-footer-full h3 { margin: 0 0 12px; font-size: 14px; letter-spacing: .06em; text-transform: uppercase; color: #fff; }
@@ -776,7 +773,6 @@ form .hidden:not(button) { display: block; max-height: 0; overflow: hidden; }
 
 @media (max-width: 480px) {
   .hide-xs { display: none !important; }
-  .brand-odi { height: 20px; }
   .brand-solid { width: 28px; height: 28px; }
   .site-header .wrap { gap: 10px; }
 }

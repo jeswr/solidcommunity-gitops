@@ -23,7 +23,7 @@ forked CSS release and no custom components.
 | `templates/identity/password/register.html.ejs` | Sign-up asks for a name and username and creates the account's Pod and WebID straight away, so every account has one. |
 | `templates/identity/account/resource.html.ejs` | Simple account page: your Pod, your WebID, change email, change password. The upstream lists (extra logins, Pods, WebIDs, tokens) sit under "Advanced settings". |
 | `templates/identity/oidc/consent.html.ejs` | App consent page that shows the person's name and picture from their profile; the client ID moves under "App details". |
-| `templates/main.html.ejs` | Site layout (ODI and Solid branding) for every CSS account, login and consent page. The upstream page templates are unchanged. |
+| `templates/main.html.ejs` | Site layout (Solid branding in the ODI visual style) for every CSS account, login and consent page. The upstream page templates are unchanged. |
 | `templates/static/` | Stylesheet, the header's profile menu (name and picture from the WebID profile) and the Solid logo, served under `/.well-known/sc/`. |
 | `infra/main.bicep` | App Service (Linux, sitecontainers) with an Azure Files share over a private endpoint. Based on theodi/css-azure-deployment. |
 | `environments/<env>.bicepparam` | Desired state of each environment: image, SKU, base URL. |
