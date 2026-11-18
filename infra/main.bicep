@@ -33,6 +33,9 @@ param maxOldSpaceMb int = 1536
 @allowed([ 'Standard_LRS', 'Premium_LRS' ])
 param storageSku string = 'Premium_LRS'
 
+@description('Folder on the share that CSS uses as its root, e.g. v2. Empty uses the share root. A new folder starts the server afresh (new root, no accounts) and leaves the old data in place.')
+param dataSubPath string = ''
+
 @description('Azure Files share quota in GiB.')
 param shareQuotaGb int = 100
 
@@ -66,6 +69,7 @@ var storageName = take('sc${env}${storageSku == 'Premium_LRS' ? 'p' : ''}${suffi
 var shareName = 'pods'
 var mountPath = '/data'
 var privateFilesDnsZoneName = 'privatelink.file.${environment().suffixes.storage}'
+var cssRootFilePath = empty(dataSubPath) ? mountPath : '${mountPath}/${dataSubPath}'
 var resolvedBaseUrl = empty(baseUrl) ? 'https://${siteName}.azurewebsites.net/' : baseUrl
 var bindCustomDomain = !empty(customDomain) && !empty(certificatePfx)
 var allowRules = [for (range, i) in allowedIpRanges: {
@@ -203,7 +207,7 @@ resource site 'Microsoft.Web/sites@2024-11-01' = {
         { name: 'WEBSITES_ENABLE_APP_SERVICE_STORAGE', value: 'false' }
         { name: 'CSS_BASE_URL', value: resolvedBaseUrl }
         { name: 'CSS_CONFIG', value: cssConfig }
-        { name: 'CSS_ROOT_FILE_PATH', value: mountPath }
+        { name: 'CSS_ROOT_FILE_PATH', value: cssRootFilePath }
         { name: 'SC_EXTRA_ARGS', value: extraArgs }
         { name: 'NODE_OPTIONS', value: '--max-old-space-size=${maxOldSpaceMb}' }
         { name: 'SMTP_PASSWORD', value: smtpPassword }

@@ -6,13 +6,19 @@ using '../infra/main.bicep'
 param env = 'preview'
 param planSku = 'B1'
 // CSS main plus the fork fixes (#132, #135, #136, #138-#140): upstream main alone crashes about hourly.
-param image = 'odisolidcommunity.azurecr.io/solidcommunity-gitops:hotfixes-ca52454c2'
+// Built by the image workflow from this branch (with the redesign merged in) with
+// css_repo=https://github.com/jeswr/CommunitySolidServer.git, css_ref=ca52454c297e54ecbf4ab83ebdae6ef4335c8512.
+param image = 'odisolidcommunity.azurecr.io/solidcommunity-gitops:redesign-3f9c998dc'
 param pullIdentityName = 'sc-runtime'
 param cssConfig = 'config/test.json'
 param extraArgs = '--loggingLevel info'
 param maxOldSpaceMb = 1280
 param storageSku = 'Premium_LRS'
 param shareQuotaGb = 100
+// Fresh root for the redesign: the landing page (templates/root/wac/index.html) is only written
+// when the root is created, and the earlier data belonged to the old azurewebsites.net base URL.
+// That data stays in the share root.
+param dataSubPath = 'v2'
 
 // Served at solidos.solid-experiments.org (Cloudflare DNS, managed by ODI). The records must be
 // DNS only (grey cloud), or the managed certificate can't be issued or renewed:
