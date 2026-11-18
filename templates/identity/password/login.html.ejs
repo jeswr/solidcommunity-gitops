@@ -1,34 +1,46 @@
-<h1>Log in</h1>
-<form method="post" id="mainForm">
-  <p class="error" id="error"></p>
+<div class="split">
+  <section class="split-intro">
+    <h1>Log in</h1>
+    <p class="lead">Log in to manage your Solid Pod and WebID, or to continue to the app that sent you here.</p>
+    <% if (authenticating) { %>
+    <div class="note note-app"><p>An app has asked you to log in. Once you have logged in, you choose which WebID it may use.</p></div>
+    <% } %>
+    <div class="note">
+      <p>Accounts created after December 2024 log in with their <strong>email address</strong>. Older accounts log in with their <strong>username</strong>.</p>
+    </div>
+  </section>
 
-  <fieldset>
-    <legend>Your account</legend>
-    <ol>
-      <li>
-        <label for="email">Email or username</label>
-        <input id="email" type="text" name="email" autocomplete="username" autofocus>
-      </li>
-      <li>
-        <label for="password">Password</label>
-        <input id="password" type="password" name="password">
-      </li>
-      <li class="checkbox">
-        <label><input type="checkbox" name="remember" value="true" checked>Stay logged in</label>
-      </li>
-    </ol>
-  </fieldset>
+  <form method="post" id="mainForm" class="card">
+    <p class="error" id="error"></p>
 
-  <p class="actions">
-    <button type="submit" name="submit" disabled>Log in</button>
-    <button class="hidden" type="button" id="cancel">Cancel</button>
-  </p>
+    <fieldset>
+      <legend class="hidden">Your account</legend>
+      <ol>
+        <li>
+          <label for="email">Email or username</label>
+          <input id="email" type="text" name="email" autocomplete="username" autocapitalize="none" spellcheck="false" autofocus>
+        </li>
+        <li>
+          <label for="password">Password</label>
+          <input id="password" type="password" name="password" autocomplete="current-password">
+        </li>
+        <li class="checkbox">
+          <label><input type="checkbox" name="remember" value="true" checked>Stay logged in</label>
+        </li>
+      </ol>
+    </fieldset>
 
-  <ul class="actions">
-    <li><a id="register-link" href="" class="link">Sign up</a></li>
-    <li><a id="forgot-link"  href="" class="link">Forgot password</a></li>
-  </ul>
-</form>
+    <p class="actions">
+      <button type="submit" name="submit" disabled>Log in</button>
+      <button class="hidden" type="button" id="cancel">Cancel</button>
+    </p>
+
+    <ul class="actions">
+      <li><a id="forgot-link" href="" class="link">Forgot password?</a></li>
+      <li>New here? <a id="register-link" href="" class="link">Sign up</a></li>
+    </ul>
+  </form>
+</div>
 
 
 <script>

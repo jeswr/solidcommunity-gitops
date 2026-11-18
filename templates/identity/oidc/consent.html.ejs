@@ -1,0 +1,156 @@
+<div class="consent">
+  <div class="consent-app">
+    <img id="client_logo" class="consent-logo hidden" width="56" height="56" alt="">
+    <span id="client_initial" class="consent-logo consent-initial" aria-hidden="true">?</span>
+    <div>
+      <h1><span id="client_name">An app</span> wants to use your Pod</h1>
+      <p>It will be able to read and change data in your Pod on your behalf. Only allow apps you trust.</p>
+    </div>
+  </div>
+
+  <p class="error" id="error"></p>
+
+  <form method="post" id="mainForm">
+    <fieldset>
+      <legend>Continue as</legend>
+      <ol id="webIdList" class="identity-list"></ol>
+    </fieldset>
+
+    <fieldset>
+      <ol>
+        <li class="checkbox">
+          <label><input type="checkbox" name="remember" value="true" checked>Remember my choice for this app</label>
+        </li>
+      </ol>
+    </fieldset>
+
+    <p class="actions">
+      <button id="authorize" type="submit" disabled autofocus>Allow</button>
+      <button id="cancel" type="button">Cancel</button>
+    </p>
+    <p class="actions secondary-actions">
+      <button id="switch-account" type="button" class="alternate">Use a different account</button>
+      <button id="edit-account" type="button" class="alternate">Account settings</button>
+    </p>
+
+    <details class="app-details">
+      <summary>App details</summary>
+      <dl id="client"></dl>
+    </details>
+  </form>
+</div>
+
+<script>
+  // Wire up elements
+  const elements = getElements();
+
+  // Retrieve and display client information
+  (async() => {
+    const controls = await fetchControls('<%= idpIndex %>');
+    wireButtons(controls);
+
+    const { webIds } = await fetchJson(controls.oidc.webId);
+    if (webIds.length === 0) {
+      setError('No WebIDs are assigned to this account. Edit the account to add one.');
+    }
+    setVisibility('authorize', webIds.length > 0);
+
+    // List the identities by name (from the public profile), with the WebID itself as the tooltip.
+    for (const webId of webIds) {
+      const li = document.createElement('li');
+      li.className = 'radio identity';
+      const label = document.createElement('label');
+      const input = document.createElement('input');
+      Object.assign(input, { type: 'radio', name: 'webId', value: webId, checked: webIds.length === 1 || webId === webIds[0] });
+      const text = document.createElement('span');
+      text.className = 'identity-text';
+      const strong = document.createElement('strong');
+      const small = document.createElement('small');
+      label.title = webId;
+      label.append(input);
+      text.append(strong, small);
+      label.append(text);
+      li.append(label);
+      elements.webIdList.append(li);
+
+      const profile = window.sc ? await window.sc.loadProfile(webId) : { webId };
+      strong.textContent = window.sc ? window.sc.displayName(profile) : webId;
+      small.textContent = new URL(webId).host;
+      if (window.sc) {
+        label.insertBefore(window.sc.avatar(profile, 40), text);
+      }
+    }
+    // A single identity needs no choice: hide its radio button.
+    elements.webIdList.classList.toggle('single', webIds.length === 1);
+
+    const { client } = await fetchJson(controls.oidc.consent);
+    const name = client.client_name || 'An app';
+    elements.client_name.innerText = name;
+    elements.client_initial.innerText = name.slice(0, 1).toUpperCase();
+    showClientInfo('Name', client.client_name);
+    showClientInfo('ID', client.client_id);
+    showClientInfo('Website', client.client_uri);
+    if (client.logo_uri) {
+      elements.client_logo.src = client.logo_uri;
+      elements.client_logo.addEventListener('load', () => {
+        setVisibility('client_logo', true);
+        setVisibility('client_initial', false);
+      });
+    }
+
+    addPostListener(() => consent(controls));
+  })();
+
+  function wireButtons(controls) {
+    elements.cancel.addEventListener('click', async() => {
+      const res = await fetch(controls.oidc.cancel, { method: 'POST' });
+      location.href = (await res.json()).location;
+    });
+
+    setRedirectClick('edit-account', controls.html.account.account);
+
+    elements['switch-account'].addEventListener('click', async() => {
+      await fetch(controls.account.logout, { method: 'POST' });
+      location.href = controls.html.main.login;
+    });
+  }
+
+  // Adds client info to the collapsed "App details"
+  function showClientInfo(label, value) {
+    if (value) {
+      const dt = document.createElement('dt');
+      const dd = document.createElement('dd');
+      dt.innerText = label;
+      dd.innerText = value;
+      elements.client.append(dt, dd);
+    }
+  }
+
+  async function consent(controls) {
+    // The OIDC provider does not allow us to login and consent at the same time, so these have to be separate calls
+    const formData = new FormData(elements.mainForm);
+    let res = await postJson(controls.oidc.webId, { webId: formData.get('webId') });
+    let json = await res.json();
+    if (res.status !== 200) {
+      elements.error.innerText = json.message;
+      return;
+    }
+
+    // This is required to update the OIDC interaction
+    res = await fetch(json.location);
+    if (res.status !== 200) {
+      json = await res.json();
+      elements.error.innerText = json.message;
+      return;
+    }
+
+    // Submit to the consent API
+    res = await postJson(controls.oidc.consent, { remember: Boolean(formData.get('remember')) });
+    json = await res.json();
+    if (res.status !== 200) {
+      elements.error.innerText = json.message;
+      return;
+    }
+    location.href = json.location;
+  }
+</script>
