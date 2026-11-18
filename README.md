@@ -16,13 +16,21 @@ forked CSS release and no custom components.
 | `config/solidcommunity.net.json` | Production entry point, with one pod per subdomain. |
 | `config/test.json` | Test entry point, with pods under paths, because `*.azurewebsites.net` has no wildcard DNS. |
 | `config/email.template.json` | SendGrid settings. The key is injected at start-up from `SMTP_PASSWORD` and is never committed. |
-| `templates/root/wac/.acl` | Public, read-only server root (the Mashlib landing page). |
+| `templates/root/wac/.acl` | Public, read-only server root. |
+| `templates/root/wac/index.html` | Landing page, served for the root container to browsers (upstream `IndexRepresentationStore`). Holds the acceptable use policy. Only written when the root is first created, so an existing root needs it copied in by hand. |
 | `templates/pod/wac` | SolidOS pod template, copied from SolidOS/css-mashlib@5cb4457 (identical to pivot's). |
-| `templates/identity/password/login.html.ejs` | Upstream login page. Accepts a bare username so that NSS-migrated accounts (`<user>@users.css.pod`) can still log in. |
+| `templates/databrowser.html` | Mashlib's own page, loading the bundle and stylesheet from jsDelivr (Brotli, edge-cached) at the version in `package.json`. Keep the two in step. |
+| `templates/identity/password/login.html.ejs` | Login page in the site layout. Accepts a bare username so that NSS-migrated accounts (`<user>@users.css.pod`) can still log in. |
+| `templates/identity/password/register.html.ejs` | Sign-up asks for a name and username and creates the account's Pod and WebID straight away, so every account has one. |
+| `templates/identity/account/resource.html.ejs` | Simple account page: your Pod, your WebID, change email, change password. The upstream lists (extra logins, Pods, WebIDs, tokens) sit under "Advanced settings". |
+| `templates/identity/oidc/consent.html.ejs` | App consent page that shows the person's name and picture from their profile; the client ID moves under "App details". |
+| `templates/main.html.ejs` | Site layout (Solid branding in the ODI visual style) for every CSS account, login and consent page. The upstream page templates are unchanged. |
+| `templates/static/` | Stylesheet, the header's profile menu (name and picture from the WebID profile) and the Solid logo, served under `/.well-known/sc/`. |
 | `infra/main.bicep` | App Service (Linux, sitecontainers) with an Azure Files share over a private endpoint. Based on theodi/css-azure-deployment. |
 | `environments/<env>.bicepparam` | Desired state of each environment: image, SKU, base URL. |
 | `.github/workflows/image.yml` | Builds the image, smoke-tests it and pushes it to GHCR. |
-| `.github/workflows/deploy.yml` | Deploys an environment when `infra/` or `environments/` change on `main`. |
+| `.github/workflows/deploy.yml` | Deploys test when `infra/` or `environments/` change on `main`. Production only on a manual run. |
+| `docs/cutover-runbook.md` | Moving solidcommunity.net from the droplet to Azure, and back if needed. |
 
 ## Why CSS comes from git, not npm
 
@@ -56,6 +64,23 @@ One-off setup, done once per subscription:
 3. In the repo's `test` environment, set the secrets `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID` and `SMTP_PASSWORD` (optional), and the variable `AZURE_RESOURCE_GROUP`.
 
 After that, a merge to `main` that touches `environments/test.bicepparam` or `infra/` deploys.
+
+## Production
+
+`environments/prod.bicepparam` serves `solidcommunity.net` and `*.solidcommunity.net` (one pod per
+subdomain) behind Cloudflare. It is deployed only by running **Deploy** by hand with `env=prod`.
+
+- The certificate is a Cloudflare Origin CA certificate for both names, passed to the deployment as a
+  base64 PFX from the `prod` environment's `ORIGIN_CERT_PFX` and `ORIGIN_CERT_PASSWORD` secrets.
+  Without them, the custom domain is skipped. Cloudflare's SSL mode is Full (strict).
+- `allowedIpRanges` limits the origin to Cloudflare's IP ranges. Test leaves it empty.
+- See `docs/cutover-runbook.md` for the one-off setup, the TXT record and the cutover.
+
+`az webapp restart` and a settings change (and so, most likely, a deploy) start the new container while the old one
+still serves, for 2 to 4 minutes, so two CSS processes with separate in-memory locks share the pod data.
+On test (B1) this window was also when requests were slow: start-up keeps the single CPU at 100%.
+Stopping and starting the site avoids the overlap at the cost of about 4 minutes of downtime. The
+Deploy workflow does that when run with `stop_first`.
 
 ## Local run
 

@@ -11,7 +11,7 @@ param env string
 
 param location string = resourceGroup().location
 
-@description('App Service plan SKU. B1 is enough for a test environment; production wants P1v3 or larger.')
+@description('App Service plan SKU. B1 is enough for a test environment; see environments/prod.bicepparam for production.')
 param planSku string = 'B1'
 
 @description('Full container image reference, e.g. ghcr.io/jeswr/solidcommunity-gitops:<sha>.')
@@ -33,6 +33,9 @@ param maxOldSpaceMb int = 1536
 @allowed([ 'Standard_LRS', 'Premium_LRS' ])
 param storageSku string = 'Premium_LRS'
 
+@description('Folder on the share that CSS uses as its root, e.g. v2. Empty uses the share root. A new folder starts the server afresh (new root, no accounts) and leaves the old data in place.')
+param dataSubPath string = ''
+
 @description('Azure Files share quota in GiB.')
 param shareQuotaGb int = 100
 
@@ -43,13 +46,43 @@ param smtpPassword string = ''
 @description('Name of an existing user-assigned identity in this resource group with AcrPull on the registry. Empty pulls the image anonymously.')
 param pullIdentityName string = ''
 
+@description('Custom apex domain, e.g. solidcommunity.net. Empty keeps only the azurewebsites.net hostname. The domain and its wildcard are bound only when a certificate is supplied too.')
+param customDomain string = ''
+
+@secure()
+@description('Base64 PFX holding the certificate (and key) for the custom domain and its wildcard, e.g. a Cloudflare Origin CA certificate. See docs/cutover-runbook.md for how to make it.')
+param certificatePfx string = ''
+
+@secure()
+@description('Password of certificatePfx.')
+param certificatePassword string = ''
+
+@description('A single host name, e.g. solidos.solid-experiments.org, served with a free App Service managed certificate. Needs DNS-only (not proxied) records first: CNAME <host> -> the site\'s default host name, and TXT asuid.<host> holding customDomainVerificationId. No wildcard, so it suits path-based pods only.')
+param managedCertHostName string = ''
+
+@description('If not empty, only these CIDR ranges may reach the site (e.g. Cloudflare\'s published ranges); everything else gets 403. The scm site is not restricted.')
+param allowedIpRanges array = []
+
 var suffix = uniqueString(resourceGroup().id, env)
 var siteName = 'sc-${env}-${suffix}'
 var storageName = take('sc${env}${storageSku == 'Premium_LRS' ? 'p' : ''}${suffix}', 24)
 var shareName = 'pods'
 var mountPath = '/data'
 var privateFilesDnsZoneName = 'privatelink.file.${environment().suffixes.storage}'
+var cssRootFilePath = empty(dataSubPath) ? mountPath : '${mountPath}/${dataSubPath}'
 var resolvedBaseUrl = empty(baseUrl) ? 'https://${siteName}.azurewebsites.net/' : baseUrl
+var bindCustomDomain = !empty(customDomain) && !empty(certificatePfx)
+var allowRules = [for (range, i) in allowedIpRanges: {
+  name: 'allow-${i}'
+  action: 'Allow'
+  priority: 100 + i
+  ipAddress: range
+}]
+var accessRestrictions = empty(allowedIpRanges) ? {} : {
+  ipSecurityRestrictionsDefaultAction: 'Deny'
+  ipSecurityRestrictions: allowRules
+  scmIpSecurityRestrictionsUseMain: false
+}
 
 resource vnet 'Microsoft.Network/virtualNetworks@2023-09-01' = {
   name: 'sc-${env}-vnet'
@@ -162,7 +195,7 @@ resource site 'Microsoft.Web/sites@2024-11-01' = {
     httpsOnly: true
     virtualNetworkSubnetId: vnet.properties.subnets[1].id
     outboundVnetRouting: { applicationTraffic: true, contentShareTraffic: true }
-    siteConfig: {
+    siteConfig: union({
       linuxFxVersion: 'sitecontainers'
       alwaysOn: true
       http20Enabled: true
@@ -174,10 +207,13 @@ resource site 'Microsoft.Web/sites@2024-11-01' = {
         { name: 'WEBSITES_ENABLE_APP_SERVICE_STORAGE', value: 'false' }
         { name: 'CSS_BASE_URL', value: resolvedBaseUrl }
         { name: 'CSS_CONFIG', value: cssConfig }
-        { name: 'CSS_ROOT_FILE_PATH', value: mountPath }
+        { name: 'CSS_ROOT_FILE_PATH', value: cssRootFilePath }
         { name: 'SC_EXTRA_ARGS', value: extraArgs }
         { name: 'NODE_OPTIONS', value: '--max-old-space-size=${maxOldSpaceMb}' }
         { name: 'SMTP_PASSWORD', value: smtpPassword }
+        // A restart starts the new container while the old one still serves, so start-up runs
+        // on a busy CPU; 133 s was measured on B1. The default limit is 230 s.
+        { name: 'WEBSITES_CONTAINER_START_TIME_LIMIT', value: '600' }
       ]
       azureStorageAccounts: {
         pods: {
@@ -189,9 +225,84 @@ resource site 'Microsoft.Web/sites@2024-11-01' = {
           accessKey: storage.listKeys().keys[0].value
         }
       }
-    }
+    }, accessRestrictions)
   }
   dependsOn: [ filesDnsGroup, filesDnsLink ]
+}
+
+// Custom domain: the apex and its wildcard (one subdomain per pod), both on one certificate.
+// App Service managed certificates don't cover wildcards, so the certificate is supplied.
+// Binding needs a TXT record asuid.<customDomain> holding the site's customDomainVerificationId
+// (output below); with only that record App Service treats it as a migration and binds
+// before DNS points here.
+resource certificate 'Microsoft.Web/certificates@2024-11-01' = if (bindCustomDomain) {
+  name: 'sc-${env}-origin'
+  location: location
+  properties: {
+    pfxBlob: certificatePfx
+    password: certificatePassword
+    serverFarmId: plan.id
+  }
+}
+
+resource apexBinding 'Microsoft.Web/sites/hostNameBindings@2024-11-01' = if (bindCustomDomain) {
+  parent: site
+  name: bindCustomDomain ? customDomain : 'unused'
+  properties: {
+    siteName: site.name
+    hostNameType: 'Verified'
+    customHostNameDnsRecordType: 'A'
+    sslState: 'SniEnabled'
+    thumbprint: certificate!.properties.thumbprint
+  }
+}
+
+resource wildcardBinding 'Microsoft.Web/sites/hostNameBindings@2024-11-01' = if (bindCustomDomain) {
+  parent: site
+  name: bindCustomDomain ? '*.${customDomain}' : 'unused-wildcard'
+  properties: {
+    siteName: site.name
+    hostNameType: 'Verified'
+    customHostNameDnsRecordType: 'CName'
+    sslState: 'SniEnabled'
+    thumbprint: certificate!.properties.thumbprint
+  }
+  // App Service rejects concurrent binding updates on one site.
+  dependsOn: [ apexBinding ]
+}
+
+// Single host name with a free managed certificate (used by the preview). The binding is made
+// without TLS first, then the certificate is issued for it, then the module turns on SNI. Each
+// deployment repeats the first step, so TLS on this host name drops for about a minute.
+resource managedBinding 'Microsoft.Web/sites/hostNameBindings@2024-11-01' = if (!empty(managedCertHostName)) {
+  parent: site
+  name: empty(managedCertHostName) ? 'unused-managed' : managedCertHostName
+  properties: {
+    siteName: site.name
+    hostNameType: 'Verified'
+    customHostNameDnsRecordType: 'CName'
+    sslState: 'Disabled'
+  }
+  dependsOn: [ main ]
+}
+
+resource managedCertificate 'Microsoft.Web/certificates@2024-11-01' = if (!empty(managedCertHostName)) {
+  name: 'sc-${env}-managed'
+  location: location
+  properties: {
+    serverFarmId: plan.id
+    canonicalName: managedCertHostName
+  }
+  dependsOn: [ managedBinding ]
+}
+
+module managedSni 'sni-binding.bicep' = if (!empty(managedCertHostName)) {
+  name: 'sc-${env}-managed-sni'
+  params: {
+    siteName: site.name
+    hostName: managedCertHostName
+    thumbprint: managedCertificate!.properties.thumbprint
+  }
 }
 
 resource main 'Microsoft.Web/sites/sitecontainers@2024-11-01' = {
@@ -217,3 +328,5 @@ resource main 'Microsoft.Web/sites/sitecontainers@2024-11-01' = {
 output siteName string = site.name
 output defaultHostName string = site.properties.defaultHostName
 output baseUrl string = resolvedBaseUrl
+@description('Value for the asuid TXT record that proves ownership of the custom domain.')
+output customDomainVerificationId string = site.properties.customDomainVerificationId

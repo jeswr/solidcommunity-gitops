@@ -1,7 +1,8 @@
 name: Deploy
 
 # GitOps: an environment's desired state is environments/<env>.bicepparam (image tag,
-# SKU, base URL). Merging a change to it, or to infra/, deploys that environment.
+# SKU, base URL). Merging a change to it, or to infra/, deploys test. Production is only
+# deployed by running this workflow by hand with env=prod.
 on:
   push:
     branches: [main]
@@ -13,18 +14,35 @@ on:
         required: true
         default: test
         type: choice
-        options: [test]
+        options: [test, preview, prod]
+      stop_first:
+        description: >-
+          Stop the site before deploying and start it afterwards. About 4 minutes down, but
+          otherwise App Service runs the old and new containers side by side on the same share
+          for a few minutes, each with its own in-memory locks.
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   id-token: write
   contents: read
+
+concurrency:
+  group: deploy-${{ github.event_name == 'workflow_dispatch' && inputs.env || 'test' }}
+  cancel-in-progress: false
 
 jobs:
   deploy:
     # Skipped until the Azure environment is set up (see README).
     if: vars.AZURE_RESOURCE_GROUP != ''
     runs-on: ubuntu-latest
-    environment: ${{ inputs.env || 'test' }}
+    # A push only ever deploys test. prod needs a manual run (and the prod environment's reviewers).
+    environment: ${{ github.event_name == 'workflow_dispatch' && inputs.env || 'test' }}
+    env:
+      ENV_NAME: ${{ github.event_name == 'workflow_dispatch' && inputs.env || 'test' }}
+      STOP_FIRST: ${{ github.event_name == 'workflow_dispatch' && inputs.stop_first }}
+      RG: ${{ vars.AZURE_RESOURCE_GROUP }}
     steps:
       - uses: actions/checkout@v4
       - uses: azure/login@v2
@@ -32,13 +50,27 @@ jobs:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Stop the site
+        if: env.STOP_FIRST == 'true'
+        run: |
+          site="$(az webapp list -g "$RG" --query "[?starts_with(name, 'sc-${ENV_NAME}-')].name | [0]" -o tsv)"
+          if [ -n "$site" ]; then az webapp stop -g "$RG" -n "$site"; fi
       - name: Deploy infrastructure and app
         env:
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          # Base64 PFX of the origin certificate and its password. Empty skips the custom domain.
+          ORIGIN_CERT_PFX: ${{ secrets.ORIGIN_CERT_PFX }}
+          ORIGIN_CERT_PASSWORD: ${{ secrets.ORIGIN_CERT_PASSWORD }}
         run: |
           az deployment group create \
-            --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" \
+            --resource-group "$RG" \
             --name "sc-${{ github.run_id }}" \
-            --parameters "environments/${{ inputs.env || 'test' }}.bicepparam" \
+            --parameters "environments/${ENV_NAME}.bicepparam" \
             --parameters smtpPassword="$SMTP_PASSWORD" \
+            --parameters certificatePfx="$ORIGIN_CERT_PFX" certificatePassword="$ORIGIN_CERT_PASSWORD" \
             --query properties.outputs -o json
+      - name: Start the site
+        if: always() && env.STOP_FIRST == 'true'
+        run: |
+          site="$(az webapp list -g "$RG" --query "[?starts_with(name, 'sc-${ENV_NAME}-')].name | [0]" -o tsv)"
+          if [ -n "$site" ]; then az webapp start -g "$RG" -n "$site"; fi

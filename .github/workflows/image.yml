@@ -26,8 +26,13 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    # The test environment holds the Azure login used to push to the test registry.
-    environment: test
+    # Each environment holds the Azure login and registry name it pushes to: test (student
+    # subscription) and preview (ODI subscription, also used by prod).
+    strategy:
+      fail-fast: false
+      matrix:
+        env: [test, preview]
+    environment: ${{ matrix.env }}
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
@@ -65,4 +70,7 @@ jobs:
           docker run -d --name sc -p 3000:3000 -e CSS_BASE_URL=http://localhost:3000/ -e CSS_ROOT_FILE_PATH=/tmp/data sc-smoke
           for i in $(seq 1 60); do curl -fsS http://localhost:3000/.well-known/openid-configuration >/dev/null && break; sleep 2; done
           curl -fsS http://localhost:3000/.well-known/openid-configuration >/dev/null || { docker logs sc; exit 1; }
-          curl -fsS -H 'Accept: text/html' http://localhost:3000/ | grep -q mashlib || { echo "Mashlib not served as default UI"; exit 1; }
+          curl -fsS -H 'Accept: text/html' http://localhost:3000/ | grep -q 'id="acceptable-use"' || { echo "Landing page not served at the root"; exit 1; }
+          curl -fsS http://localhost:3000/.well-known/sc/site.css >/dev/null || { echo "Site stylesheet not served"; exit 1; }
+          # Any other HTML request gets Mashlib (here a 401 for a resource that does not exist, so no -f).
+          curl -sS -H 'Accept: text/html' http://localhost:3000/smoke-test/ | grep -q mashlib || { echo "Mashlib not served as default UI"; exit 1; }

@@ -3,8 +3,11 @@
 # CSS is built from a git ref rather than npm because the fixes solidcommunity.net needs
 # are on CSS main but not yet in a release (7.2.0 predates them). Once a release contains
 # them, swap the builder stage for a plain npm dependency.
-ARG CSS_REPO=https://github.com/CommunitySolidServer/CommunitySolidServer.git
-ARG CSS_REF=3cd2aca2d6b8815204520e272d6e5b0b4d7a6071
+# Default: CSS main plus the fork fixes (#132, #135, #136, #138-#140), the build the preview runs.
+# The read cache in config/base.json needs #135 (stream-lock fix); upstream main without it
+# crashes at start-up with "callback is not a function".
+ARG CSS_REPO=https://github.com/jeswr/CommunitySolidServer.git
+ARG CSS_REF=ca52454c297e54ecbf4ab83ebdae6ef4335c8512
 
 FROM node:22-bookworm-slim AS css
 ARG CSS_REPO
