@@ -54,6 +54,9 @@ param certificatePfx string = ''
 @description('Password of certificatePfx.')
 param certificatePassword string = ''
 
+@description('A single host name, e.g. solidos.solid-experiments.org, served with a free App Service managed certificate. Needs DNS-only (not proxied) records first: CNAME <host> -> the site\'s default host name, and TXT asuid.<host> holding customDomainVerificationId. No wildcard, so it suits path-based pods only.')
+param managedCertHostName string = ''
+
 @description('If not empty, only these CIDR ranges may reach the site (e.g. Cloudflare\'s published ranges); everything else gets 403. The scm site is not restricted.')
 param allowedIpRanges array = []
 
@@ -262,6 +265,40 @@ resource wildcardBinding 'Microsoft.Web/sites/hostNameBindings@2024-11-01' = if 
   }
   // App Service rejects concurrent binding updates on one site.
   dependsOn: [ apexBinding ]
+}
+
+// Single host name with a free managed certificate (used by the preview). The binding is made
+// without TLS first, then the certificate is issued for it, then the module turns on SNI. Each
+// deployment repeats the first step, so TLS on this host name drops for about a minute.
+resource managedBinding 'Microsoft.Web/sites/hostNameBindings@2024-11-01' = if (!empty(managedCertHostName)) {
+  parent: site
+  name: empty(managedCertHostName) ? 'unused-managed' : managedCertHostName
+  properties: {
+    siteName: site.name
+    hostNameType: 'Verified'
+    customHostNameDnsRecordType: 'CName'
+    sslState: 'Disabled'
+  }
+  dependsOn: [ main ]
+}
+
+resource managedCertificate 'Microsoft.Web/certificates@2024-11-01' = if (!empty(managedCertHostName)) {
+  name: 'sc-${env}-managed'
+  location: location
+  properties: {
+    serverFarmId: plan.id
+    canonicalName: managedCertHostName
+  }
+  dependsOn: [ managedBinding ]
+}
+
+module managedSni 'sni-binding.bicep' = if (!empty(managedCertHostName)) {
+  name: 'sc-${env}-managed-sni'
+  params: {
+    siteName: site.name
+    hostName: managedCertHostName
+    thumbprint: managedCertificate!.properties.thumbprint
+  }
 }
 
 resource main 'Microsoft.Web/sites/sitecontainers@2024-11-01' = {
